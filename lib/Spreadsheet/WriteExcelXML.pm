@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.01'; # Begin again with Berryman
+$VERSION = '0.02'; # Begin again with Berryman
 
 
 
@@ -54,7 +54,7 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.01 of Spreadsheet::WriteExcelXML, released April 24, 2004.
+This document refers to version 0.02 of Spreadsheet::WriteExcelXML, released April 25, 2004.
 
 
 

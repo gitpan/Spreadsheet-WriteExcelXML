@@ -1,5 +1,9 @@
 Revision history for Perl module Spreadsheet::WriteExcelXML.
 
+0.02 April 25 2004
+
+    ! Fixed a Windows case insensitive bug.
+
 
 0.01 April 24 2004
 

@@ -15,7 +15,7 @@ package Spreadsheet::WriteExcelXML::Workbook;
 use Exporter;
 use strict;
 use Carp;
-use Filehandle;
+use FileHandle;
 use Spreadsheet::WriteExcelXML::XMLwriter;
 use Spreadsheet::WriteExcelXML::Worksheet;
 use Spreadsheet::WriteExcelXML::Format;
