@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.02'; # Begin again with Berryman
+$VERSION = '0.03'; # The Saturday Boy and The Birthday Boy
 
 
 
@@ -54,7 +54,7 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.02 of Spreadsheet::WriteExcelXML, released April 25, 2004.
+This document refers to version 0.03 of Spreadsheet::WriteExcelXML, released May 13, 2004.
 
 
 
@@ -430,7 +430,8 @@ The following methods are available through a new worksheet:
     write_blank()
     write_row()
     write_col()
-    write_url() *
+    write_date_time()
+    write_url()
     write_url_range() *
     write_formula()
     store_formula() **
@@ -826,31 +827,77 @@ See also the C<write_arrays.pl> program in the C<examples> directory of the dist
 
 
 
-=head2 write_url($row, $col, $url, $string, $format)
+=head2 write_date_time($row, $col, $date_string, $format)
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
+Write a date to the cell specified by C<$row> and C<$column>:
 
-Write a hyperlink to a URL in the cell specified by C<$row> and C<$column>. The hyperlink is comprised of two elements: the visible label and the invisible link. The visible label is the same as the link unless an alternative string is specified. The parameters C<$string> and the C<$format> are optional and their position is interchangeable.
+    $worksheet->write_date_time('A1', '2004-05-13T23:20', $date_format);
+
+The C<$date_string> must be in the following format:
+
+    yyyy-mm-ddThh:mm:ss.sss
+
+This is an ISO8601 date but it should be noted that the full range of ISO8601 formats are not supported.
+
+A date should always have a C<$format>, otherwise it will appear as a number, see L<CELL FORMATTING> and L<DATES IN EXCEL>. Here is a typical example:
+
+    my $date_format = $workbook->add_format(num_format => 'mm/dd/yy');
+    $worksheet->write_date_time('A1', '2004-05-13T23:20', $date_format);
+
+Spreadsheet::WriteExcelXML also allows Excel's newer text description formats:
+
+    General Date
+    Short Date
+    Medium Date
+    Long Date
+    Short Time
+    Medium Time
+    Long Time
+
+    my $date_format = $workbook->add_format(num_format => 'Short Date');
+    $worksheet->write_date_time('A1', '2004-05-13T23:20', $date_format);
+
+Valid dates should be in the range 1900-01-01 to 9999-12-31, for the 1900 epoch. As with Excel, dates outside these ranges will be written as a string. The 1904 epoch is not supported in this release.
+
+To write a time with a zero date use the date C<1899-12-31>. This is an Excel quirk. See L<DATES IN EXCEL>.
+
+    $worksheet->write_date_time('A1', '1899-12-31T23:20', $date_format);
+
+
+
+See also the C<date_time.pl> program in the C<examples> directory of the distro.
+
+
+
+
+=head2 write_url($row, $col, $url, $format, $string, $tip)
+
+Write a hyperlink to a URL in the cell specified by C<$row> and C<$column>. The hyperlink is comprised of two elements: the visible label and the invisible link. The visible label is the same as the link unless an alternative string is specified.
+
+The parameters C<$format>, C<$string> and C<$tip> are optional. Note however that without a C<$format> the url will not appear with the standard blue underline. This behaviour is different from older versions of C<Spreadsheet::WriteExcel>. To achieve this effect you must add an explicit format:
+
+    my $format = $workbook->add_format(color => 'blue', underline => 1);
+
+You can add a I<tooltip> to the url by specifying the C<$tip> parameter. This is feature isn't supported in C<Spreadsheet::WriteExcelXML>.
 
 There are four web style URI's supported: C<http://>, C<https://>, C<ftp://> and  C<mailto:>:
 
-    $worksheet->write_url(0, 0,  'ftp://www.perl.org/'                  );
-    $worksheet->write_url(1, 0,  'http://www.perl.com/', 'Perl home'    );
-    $worksheet->write_url('A3',  'http://www.perl.com/', $format        );
-    $worksheet->write_url('A4',  'http://www.perl.com/', 'Perl', $format);
-    $worksheet->write_url('A5',  'mailto:jmcnamara@cpan.org'            );
+    $worksheet->write_url(0, 0, 'ftp://www.perl.org/',  $format            );
+    $worksheet->write_url(1, 0, 'http://www.perl.com/', $format 'Perl home');
+    $worksheet->write_url('A3', 'http://www.perl.com/', $format            );
+    $worksheet->write_url('A4', 'http://www.perl.com/', 'Perl home',$format);
+    $worksheet->write_url('A5', 'mailto:jmcnamara@cpan.org'                );
 
 There are two local URIs supported: C<internal:> and C<external:>. These are used for hyperlinks to internal worksheet references or external workbook and worksheet references:
 
-    $worksheet->write_url('A6',  'internal:Sheet2!A1'                   );
-    $worksheet->write_url('A7',  'internal:Sheet2!A1',   $format        );
-    $worksheet->write_url('A8',  'internal:Sheet2!A1:B2'                );
-    $worksheet->write_url('A9',  q{internal:'Sales Data'!A1}            );
-    $worksheet->write_url('A10', 'external:c:\temp\foo.xls'             );
-    $worksheet->write_url('A11', 'external:c:\temp\foo.xls#Sheet2!A1'   );
-    $worksheet->write_url('A12', 'external:..\..\..\foo.xls'            );
-    $worksheet->write_url('A13', 'external:..\..\..\foo.xls#Sheet2!A1'  );
-    $worksheet->write_url('A13', 'external:\\\\NETWORK\share\foo.xls'   );
+    $worksheet->write_url('A6',  'internal:Sheet2!A1',        $format);
+    $worksheet->write_url('A7',  'internal:Sheet2!A1:B2',     $format);
+    $worksheet->write_url('A8',  q{internal:'Sales Data'!A1}, $format);
+    $worksheet->write_url('A9',  'external:c:\temp\foo.xls',  $format);
+    $worksheet->write_url('A10', 'external:c:\temp\foo.xls#Sheet2!A1');
+    $worksheet->write_url('A11', 'external:\\\\NETWORK\share\foo.xls');
+
+Note that the relative style directory link such as C< ..\foo.xls> is not supported by Excel XML. You must use an absolute directory link instead.
 
 All of the these URI types are recognised by the C<write()> method, see above.
 
@@ -874,8 +921,6 @@ Finally, you can avoid most of these quoting problems by using forward slashes. 
 
     $worksheet->write_url('A14', "external:c:/temp/foo.xls"             );
     $worksheet->write_url('A15', 'external://NETWORK/share/foo.xls'     );
-
-Note: Hyperlinks are not available in Excel 5. They will appear as a string only.
 
 See also, the note about L<Cell notation>.
 
@@ -2666,7 +2711,7 @@ A hex RGB chart: : http://www.hypersolutions.org/pages/rgbhex.html
 
 =head1 DATES IN EXCEL
 
-B<Note:> The following methods  will work with Spreadsheet::WriteExcelXML but they apply more to Spreadsheet::WriteExcel since Excel XML has another relatively simpler method of dealing with dates. This will be added in a latter release. Use the following for now.
+The following methods  will work with Spreadsheet::WriteExcelXML but they apply more to Spreadsheet::WriteExcel since Excel XML has another relatively simpler method of dealing with dates. See the C<write_date_time()> Worksheet method.
 
 Dates and times in Excel are represented by real numbers, for example "Jan 1 2001 12:30 AM" is represented by the number 36892.521.
 
@@ -3211,9 +3256,8 @@ The following example converts a tab separated file called C<tab.txt> into an Ex
 =head2 Additional Examples
 
 The following is a description of the example files that are provided
-with Spreadsheet::WriteExcelXML, in the C<examples> directory of the distrubution file. They are intended to demonstrate the
+with Spreadsheet::WriteExcelXML, in the C<examples> directory of the distribution file. They are intended to demonstrate the
 different features and options of the module.
-
 
     Getting started
     ===============
@@ -3236,9 +3280,12 @@ different features and options of the module.
     stats_ext.pl        Same as stats.pl with external references.
     cgi.pl              A simple CGI program.
     mod_perl.pl         A simple mod_perl program.
+    hyperlink1.pl       Shows how to create web hyperlinks.
+    hyperlink2.pl       Examples of internal and external hyperlinks.
     textwrap.pl         Demonstrates text wrapping options.
     protection.pl       Example of cell locking and formula hiding.
     copyformat.pl       Example of copying a cell format.
+    web_component.pl    Create an interactive Excel webpage with IE.
 
 
     Utility
@@ -3256,7 +3303,6 @@ different features and options of the module.
     function_locale.pl  Add non-English function names to Formula.pm.
     filehandle.pl       Examples of working with filehandles.
     writeA1.pl          Example of how to extend the module.
-
 
 
 
@@ -3292,7 +3338,7 @@ This module requires Perl 5.005 (or later).
 
 =head1 INSTALLATION
 
-Use the standard Unix style installation, a ppm for Windows users will be available in the next release:
+Use the standard Unix style installation, a ppm for Windows users will be available in a later release:
 
     Unzip and untar the module as follows or use winzip:
 
@@ -3505,21 +3551,23 @@ Spreadsheet::ParseExcel: http://search.cpan.org/search?dist=Spreadsheet-ParseExc
 John McNamara jmcnamara@cpan.org
 
 
-    Filling her compact & delicious body
-    with chicken paprika, she glanced at me
-    twice.
-    Fainting with interest, I hungered back
-    and only the fact of her husband & four other people
-    kept me from springing on her
+    I'll never forget the first day I met her
+    That September morning was clear and fresh
+    The way she spoke and laughed at my jokes
+    And the way she rubbed herself
+    Against the edge of my desk
+    She became a magic mystery to me
+    And we'd sit together in double
+    History twice a week
+    And some days we'd walk the same way home
+    And it's surprising how quick
+    A little rain can clear the streets
+    We dreamed of her and compared our dreams
+    But that was all that I ever tasted
+    She lied to me with her body you see
+    I lied to myself 'bout the chances I'd wasted
 
-    or falling at her little feet and crying
-    'You are the hottest one for years of night
-    Henry's dazed eyes
-    have enjoyed, Brilliance.' I advanced upon
-    (despairing) my spumoni.--Sir Bones: is stuffed,
-    de world, wif feeding girls.
-
-        -- John Berryman
+        -- Billy Bragg
 
 
 

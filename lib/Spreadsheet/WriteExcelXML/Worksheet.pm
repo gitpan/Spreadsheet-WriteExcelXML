@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter);
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 ###############################################################################
 #
@@ -47,6 +47,7 @@ sub new {
     $self->{_indentation}       = $_[3];
     $self->{_activesheet}       = $_[4];
     $self->{_firstsheet}        = $_[5];
+    $self->{_1904}              = $_[6];
 
     $self->{_ext_sheets}        = [];
     $self->{_fileclosed}        = 0;
@@ -130,6 +131,7 @@ sub new {
                                    DateTime => 3,
                                    Formula  => 4,
                                    Blank    => 5,
+                                   HRef     => 6,
                                   };
 
 
@@ -1699,11 +1701,39 @@ sub write_url {
         @_ = $self->_substitute_cellref(@_);
     }
 
-    # Check the number of args
-    return -1 if @_ < 3;
+    if (@_ < 3) { return -1 }                   # Check the number of args
 
-    # Add start row and col to arg list
-    return $self->write_url_range($_[0], $_[1], @_);
+
+    # Reverse the order of $string and $format if necessary. We work on a copy
+    # in order to protect the callers args. We don't use "local @_" in case of
+    # perl50005 threads.
+    #
+    my @args = @_;
+    ($args[3], $args[4]) = ($args[4], $args[3]) if ref $args[3];
+
+
+    my $row     = $args[0];                         # Zero indexed row
+    my $col     = $args[1];                         # Zero indexed column
+    my $url     = $args[2];                         # URL string
+    my $str     = $args[3];                         # Alternative label
+    my $xf      = _XF($self, $row, $col, $args[4]); # Tool tip
+    my $tip     = $args[5];                         # XML data type
+    my $type    = $self->{_datatypes}->{HRef};
+
+
+    $url        =~ s/^internal:/#/; # Remove designators required by SWE.
+    $url        =~ s/^external://;  # Remove designators required by SWE.
+    $str        = $url unless defined $str;
+
+    # Check that row and col are valid and store max and min values
+    return -2 if $self->_check_dimensions($row, $col);
+
+    my $str_error = 0;
+
+
+    $self->{_table}->[$row]->[$col] = [$type, $url, $xf, $str, $tip];
+
+    return $str_error;
 }
 
 
@@ -1966,6 +1996,193 @@ sub _write_url_external_net {
     # TODO Update for ExcelXML format
 
     return $str_error;
+}
+
+
+###############################################################################
+#
+# write_date_time ($row, $col, $string, $format)
+#
+# Write TODO.
+# $format is optional.
+# Returns  0 : normal termination
+#         -1 : insufficient number of arguments
+#         -2 : row or column out of range
+#         -3 : Invalid date_time, written as string
+#
+sub write_date_time {
+
+    my $self = shift;
+
+    # Check for a cell reference in A1 notation and substitute row and column
+    if ($_[0] =~ /^\D/) {
+        @_ = $self->_substitute_cellref(@_);
+    }
+
+    if (@_ < 3) { return -1 }                        # Check the number of args
+
+    my $row       = $_[0];                           # Zero indexed row
+    my $col       = $_[1];                           # Zero indexed column
+    my $str       = $_[2];
+    my $xf        = _XF($self, $row, $col, $_[3]);   # The cell format
+    my $type      = $self->{_datatypes}->{DateTime}; # The data type
+
+
+    # Check that row and col are valid and store max and min values
+    return -2 if $self->_check_dimensions($row, $col);
+
+    my $str_error = 0;
+    my $date_time = $self->_check_date_time($str);
+
+    # If the date isn't valid then write it as a string.
+    if (not defined $date_time) {
+        $type      = $self->{_datatypes}->{String};
+        $str_error = -3;
+    }
+
+    $self->{_table}->[$row]->[$col] = [$type, $str, $xf];
+
+    return $str_error;
+}
+
+
+
+###############################################################################
+#
+# _check_date_time($date_time_string)
+#
+# The function takes a date and time in ISO8601 "yyyy-mm-ddThh:mm:ss.ss" format
+# and converts it to a decimal number representing a valid Excel date.
+#
+# Dates and times in Excel are represented by real numbers. The integer part of
+# the number stores the number of days since the epoch and the fractional part
+# stores the percentage of the day in seconds. The epoch can be either 1900 or
+# 1904.
+#
+# Parameter: Date and time string in one of the following formats:
+#               yyyy-mm-ddThh:mm:ss.ss  # Standard
+#               yyyy-mm-ddT             # Date only
+#                         Thh:mm:ss.ss  # Time only
+#
+# Returns:
+#            A decimal number representing a valid Excel date, or
+#            undef if the date is invalid.
+#
+sub _check_date_time {
+
+    my $self      = shift;
+    my $date_time = $_[0];
+
+    my $days      = 0; # Number of days since epoch
+    my $seconds   = 0; # Time expressed as fraction of 24h hours in seconds
+
+    my ($year, $month, $day);
+    my ($hour, $min, $sec);
+
+
+    # Strip leading and trailing whitespace.
+    $date_time =~ s/^\s+//;
+    $date_time =~ s/\s+$//;
+
+    # Check for invalid date char.
+    return if     $date_time =~ /[^0-9T:\-\.Z]/;
+
+    # Check for "T" after date or before time.
+    return unless $date_time =~ /\dT|T\d/;
+
+    # Strip trailing Z in ISO8601 date.
+    $date_time =~ s/Z$//;
+
+
+    # Split into date and time.
+    my ($date, $time) = split /T/, $date_time;
+
+
+    # We allow the time portion of the input DateTime to be optional.
+    if ($time ne '') {
+        # Match hh:mm:ss.sss+ where the seconds are optional
+        if ($time =~ /^(\d\d):(\d\d)(:(\d\d(\.\d+)?))?/) {
+            $hour   = $1;
+            $min    = $2;
+            $sec    = $4 || 0;
+        }
+        else {
+            return undef; # Not a valid time format.
+        }
+
+        # Some boundary checks
+        return if $hour >= 24;
+        return if $min  >= 60;
+        return if $sec  >= 60;
+
+        # Excel expresses seconds as a fraction of the number in 24 hours.
+        $seconds = ($hour *60*60 + $min *60 + $sec) / (24 *60 *60);
+    }
+
+
+    # We allow the date portion of the input DateTime to be optional.
+    return $seconds if $date eq '';
+
+
+    # Match date as yyyy-mm-dd.
+    if ($date =~ /^(\d\d\d\d)-(\d\d)-(\d\d)$/) {
+        $year   = $1;
+        $month  = $2;
+        $day    = $3;
+    }
+    else {
+        return undef; # Not a valid date format.
+    }
+
+    # Set the epoch as 1900 or 1904. Defaults to 1900.
+    my $date_1904 = $self->{_1904};
+
+
+    # Special cases for Excel.
+    if (not $date_1904) {
+        return      $seconds if $date eq '1899-12-31'; # Excel 1900 epoch
+        return      $seconds if $date eq '1900-01-00'; # Excel 1900 epoch
+        return 60 + $seconds if $date eq '1900-02-29'; # Excel last leapday
+    }
+
+
+    # We calculate the date by calculating the number of days since the epoch
+    # and adjust for the number of leap days. We calculate the number of leap
+    # days by normalising the year in relation to the epoch. Thus the year 2000
+    # becomes 100 for 4 and 100 year leapdays and 400 for 400 year leapdays.
+    #
+    my $epoch   = $date_1904 ? 1904 : 1900;
+    my $offset  = $date_1904 ?    4 :    0;
+    my $norm    = 300;
+    my $range   = $year -$epoch;
+
+
+    # Set month days and check for leap year.
+    my @mdays   = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
+    my $leap    = 0;
+       $leap    = 1  if $year % 4 == 0 and $year % 100 or $year % 400 == 0;
+    $mdays[1]   = 29 if $leap;
+
+
+    # Some boundary checks
+    return if $year  < $epoch or $year  > 9999;
+    return if $month < 1      or $month > 12;
+    return if $day   < 1      or $day   > $mdays[$month -1];
+
+    # Accumulate the number of days since the epoch.
+    $days  = $day;                              # Add days for current month
+    $days += $mdays[$_] for 0 .. $month -2;     # Add days for past months
+    $days += $range *365;                       # Add days for past years
+    $days += int(($range)                /  4); # Add leapdays
+    $days -= int(($range +$offset)       /100); # Subtract 100 year leapdays
+    $days += int(($range +$offset +$norm)/400); # Add 400 year leapdays
+    $days -= $leap;                             # Already counted above
+
+
+    # Adjust for Excel erroneously treating 1900 as a leap year.
+    $days++ if $date_1904 == 0 and $days > 59;
+
+    return $days + $seconds;
 }
 
 
@@ -3241,10 +3458,18 @@ sub _write_xml_cell {
     push @attribs, "ss:StyleID", "s" . $format if $format;
 
 
-
+    # Add to the attribute list for data types with additional options
     if ($datatype == $self->{_datatypes}->{Formula}) {
         push @attribs, "ss:Formula", $data;
     }
+
+    if ($datatype == $self->{_datatypes}->{HRef}) {
+        push @attribs, "ss:HRef", $data;
+
+        my $tip = $self->{_table}->[$row]->[$col]->[4];
+        push @attribs, "x:HRefScreenTip", $tip if defined $tip ;
+    }
+
 
 
     # Write the Number data element
@@ -3267,6 +3492,16 @@ sub _write_xml_cell {
     }
 
 
+    # Write the DateTime data element
+    if ($datatype == $self->{_datatypes}->{DateTime}) {
+        $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
+        $self->_write_xml_cell_data('DateTime', $data);
+        $self->_write_xml_end_tag(4, 1, 0, 'Cell');
+        $self->{prev_col} = $col;
+        return;
+    }
+
+
     # Write an empty Data element for a formula data
     if ($datatype == $self->{_datatypes}->{Formula}) {
         $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
@@ -3274,10 +3509,44 @@ sub _write_xml_cell {
     }
 
 
+    # Write the HRef data element
+    if ($datatype == $self->{_datatypes}->{HRef}) {
+
+        $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
+
+        my $data = $self->{_table}->[$row]->[$col]->[3];
+        my $type;
+
+        # Match DateTime string.
+        if ($self->_check_date_time($data)) {
+            $type = 'DateTime';
+        }
+        # Match integer with leading zero(s)
+        elsif ($self->{_leading_zeros} and $data =~ /^0\d+$/) {
+            $type = 'String';
+        }
+        # Match number.
+        elsif ($data =~ /^([+-]?)(?=\d|\.\d)\d*(\.\d*)?([Ee]([+-]?\d+))?$/) {
+            $type = 'Number';
+        }
+        # Default to string.
+        else {
+            $type = 'String';
+        }
+
+
+        $self->_write_xml_cell_data($type, $data);
+        $self->_write_xml_end_tag(4, 1, 0, 'Cell');
+        $self->{prev_col} = $col;
+        return;
+    }
+
+
+
     # Write an empty Data element for a blank cell
     if ($datatype == $self->{_datatypes}->{Blank}) {
         $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
-    $self->{prev_col} = $col;
+        $self->{prev_col} = $col;
         return;
     }
 

@@ -10,9 +10,12 @@ lib/Spreadsheet/WriteExcelXML/Workbook.pm
 lib/Spreadsheet/WriteExcelXML/Worksheet.pm
 lib/Spreadsheet/WriteExcelXML/XMLwriter.pm
 
-t/convert_formula.t
-t/format.t
-t/xml_writer.t
+t/01_xml_writer.t
+t/02_format.t
+t/03_convert_formula.t
+t/11_date_time.t
+t/12_date_only.t
+t/13_date_seconds.t
 
 examples/README
 examples/bug_report.pl
@@ -24,10 +27,13 @@ examples/copyformat.pl
 examples/csv2xls.pl
 examples/datecalc1.pl
 examples/datecalc2.pl
+examples/date_time.pl
 examples/demo.pl
 examples/filehandle.pl
 examples/formats.pl
 examples/function_locale.pl
+examples/hyperlink1.pl
+examples/hyperlink2.pl
 examples/mod_perl.pl
 examples/protection.pl
 examples/regions.pl
@@ -41,3 +47,5 @@ examples/tab2xls.pl
 examples/textwrap.pl
 examples/writeA1.pl
 examples/write_arrays.pl
+examples/web_component.pl
+

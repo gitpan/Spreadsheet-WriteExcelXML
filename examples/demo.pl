@@ -84,8 +84,13 @@ $worksheet->write('B7', '=SIN(PI()/4)');
 #
 # Hyperlinks
 #
+my $url_format  = $workbook->add_format(
+                                            underline => 1,
+                                            color     => 'blue',
+                                        );
+
 $worksheet->write('A8', "Hyperlinks");
-$worksheet->write('B8',  'http://www.perl.com/' );
+$worksheet->write('B8',  'http://www.perl.com/', $url_format);
 
 
 #######################################################################

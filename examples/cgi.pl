@@ -27,6 +27,8 @@ print "\n";
 # redirect the output to STDOUT
 #
 my $workbook  = Spreadsheet::WriteExcelXML->new("-");
+   $workbook->set_indentation("");
+
 my $worksheet = $workbook->add_worksheet();
 
 

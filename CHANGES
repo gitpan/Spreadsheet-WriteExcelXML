@@ -1,5 +1,17 @@
 Revision history for Perl module Spreadsheet::WriteExcelXML.
 
+0.03 May 13 2004
+
+    + Added write_date_time() to write dates in Excel XML's
+      simplified ISO8601 format.
+
+    + Enabled write_url() as per Spreadsheet::WriteExcel.
+
+    + Added hyperlink.pl and date_time.pl examples.
+
+    + Added web_component.pl example.
+
+
 0.02 April 25 2004
 
     ! Fixed a Windows case insensitive bug.

@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter Exporter);
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 ###############################################################################
 #
@@ -209,6 +209,7 @@ sub add_worksheet {
                          $self->{_indentation},
                         \$self->{_activesheet},
                         \$self->{_firstsheet},
+                         $self->{_1904},
                     );
 
     my $worksheet = Spreadsheet::WriteExcelXML::Worksheet->new(@init_data);
