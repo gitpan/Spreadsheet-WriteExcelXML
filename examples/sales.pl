@@ -13,7 +13,7 @@ use Spreadsheet::WriteExcelXML;
 use Spreadsheet::WriteExcelXML::Utility;
 
 # Create a new workbook and add a worksheet
-my $workbook        = Spreadsheet::WriteExcelXML->new("sales.xml");
+my $workbook        = Spreadsheet::WriteExcelXML->new("sales.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 

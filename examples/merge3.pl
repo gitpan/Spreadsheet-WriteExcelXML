@@ -13,7 +13,7 @@ use strict;
 use Spreadsheet::WriteExcelXML;
 
 # Create a new workbook and add a worksheet
-my $workbook  = Spreadsheet::WriteExcelXML->new('merge3.xml');
+my $workbook  = Spreadsheet::WriteExcelXML->new('merge3.xls');
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 
 my $worksheet = $workbook->add_worksheet();

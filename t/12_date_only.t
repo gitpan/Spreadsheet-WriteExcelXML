@@ -45,10 +45,10 @@ while (<DATA>) {
 
     my ($count, $date, $result) = split;
 
-    my $number = $worksheet->_check_date_time($date);
+    my $number = $worksheet->convert_date_time($date);
        $number = -1 unless defined $number;
 
-    is($number, $result, " Testing _check_date_time: $date $result")
+    is($number, $result, " Testing convert_date_time: $date $result")
 
 }
 

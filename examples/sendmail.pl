@@ -16,7 +16,7 @@ use Spreadsheet::WriteExcelXML;
 use Mail::Sender;
 
 # Create an Excel file
-my $workbook  = Spreadsheet::WriteExcelXML->new("sendmail.xml");
+my $workbook  = Spreadsheet::WriteExcelXML->new("sendmail.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 
@@ -40,7 +40,7 @@ $sender->MailFile(
     to      => 'another@mail.com',
     subject => 'Excel file',
     msg     => "Here is the data.\n",
-    file    => 'mail.xml',
+    file    => 'mail.xls',
 });
 
 

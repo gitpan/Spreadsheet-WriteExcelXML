@@ -14,7 +14,7 @@ use strict;
 use Spreadsheet::WriteExcelXML;
 
 # Create a new workbook and add a worksheet
-my $workbook  = Spreadsheet::WriteExcelXML->new("stats_ext.xml");
+my $workbook  = Spreadsheet::WriteExcelXML->new("stats_ext.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 

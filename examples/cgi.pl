@@ -15,7 +15,7 @@ use strict;
 use Spreadsheet::WriteExcelXML;
 
 # Set the filename and send the content type
-my $filename ="cgitest.xml";
+my $filename ="cgitest.xls";
 
 print "Content-type: application/vnd.ms-excel\n";
 # The Content-Disposition will generate a prompt to save the file. If you want

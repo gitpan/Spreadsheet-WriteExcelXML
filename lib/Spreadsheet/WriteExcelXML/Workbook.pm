@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter Exporter);
 
-$VERSION = '0.02';
+$VERSION = '0.07';
 
 ###############################################################################
 #
@@ -68,15 +68,20 @@ sub new {
 
 
     # If filename is a reference we assume that it is a valid filehandle.
-    #
-    if (not ref $self->{_filename}) {
-
-        $self->{_filehandle} = FileHandle->new('>'. $self->{_filename});
-        return undef unless defined $self->{_filehandle};
+    if (ref $self->{_filename}) {
+        $self->{_filehandle} = $self->{_filename};
     }
     else {
-        # Assume a valid filehandle.
-        $self->{_filehandle} = $self->{_filename};
+        my $fh = FileHandle->new('>'. $self->{_filename});
+
+        return undef unless defined $fh;
+
+        # Set the output to utf8 in newer perls.
+        if ($] >= 5.008) {
+            eval q(binmode $fh, ':utf8');
+        }
+
+        $self->{_filehandle} = $fh;
     }
 
 

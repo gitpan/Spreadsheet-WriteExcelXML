@@ -46,21 +46,21 @@ sub flt_cmp {
 
 $date_time = '1899-12-31T00:00:00.0004';
 $number    = 0;
-$result    = $worksheet->_check_date_time($date_time);
+$result    = $worksheet->convert_date_time($date_time);
 $result    = -1 unless defined $result;
 
 # Test 1. This should pass. It is less than the float diff limit.
 ok(flt_cmp($number, $result),
-           " Testing _check_date_time: $date_time $number");
+           " Testing convert_date_time: $date_time $number");
 
 $date_time = '1899-12-31T00:00:00.0005';
 $number    = 0;
-$result    = $worksheet->_check_date_time($date_time);
+$result    = $worksheet->convert_date_time($date_time);
 $result    = -1 unless defined $result;
 
 # Test 2. This should fail. It is equal to the float diff limit.
 my $diff   = ! flt_cmp($number, $result);
-ok($diff, " Testing _check_date_time: $date_time $number");
+ok($diff, " Testing convert_date_time: $date_time $number");
 
 
 
@@ -81,11 +81,11 @@ while (<DATA>) {
 
         if ($line =~ /"Number">([^<]+)/) {
             my $number = 0 + $1;
-            my $result = $worksheet->_check_date_time($date_time);
+            my $result = $worksheet->convert_date_time($date_time);
                $result = -1 unless defined $result;
 
             ok(flt_cmp($number, $result),
-                       " Testing _check_date_time: $date_time $number")
+                       " Testing convert_date_time: $date_time $number")
                or diag("difference between $number and $result\n" .
                        "= " . abs($number -$result) . "\n".
                        "> $flt_delta");

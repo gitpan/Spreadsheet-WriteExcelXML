@@ -10,7 +10,7 @@
 use strict;
 use Spreadsheet::WriteExcelXML;
 
-my $workbook = Spreadsheet::WriteExcelXML->new('formats.xml');
+my $workbook = Spreadsheet::WriteExcelXML->new('formats.xls');
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 

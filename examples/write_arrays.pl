@@ -17,7 +17,7 @@ use strict;
 use Spreadsheet::WriteExcelXML;
 
 
-my $workbook   = Spreadsheet::WriteExcelXML->new("write_arrays.xml");
+my $workbook   = Spreadsheet::WriteExcelXML->new("write_arrays.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 

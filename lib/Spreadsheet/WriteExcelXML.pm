@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.06'; # What would JCC do?
+$VERSION = '0.07'; # AR101
 
 
 
@@ -54,19 +54,19 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.06 of Spreadsheet::WriteExcelXML, released August 19, 2004.
+This document refers to version 0.07 of Spreadsheet::WriteExcelXML, released November 11, 2004.
 
 
 
 
 =head1 SYNOPSIS
 
-To write a string, a formatted string, a number and a formula to the first worksheet in an Excel XML spreadsheet called perl.xml:
+To write a string, a formatted string, a number and a formula to the first worksheet in an Excel XML spreadsheet called perl.xls:
 
     use Spreadsheet::WriteExcelXML;
 
     # Create a new Excel workbook
-    my $workbook = Spreadsheet::WriteExcelXML->new("perl.xml");
+    my $workbook = Spreadsheet::WriteExcelXML->new("perl.xls");
 
     # Add a worksheet
     $worksheet = $workbook->add_worksheet();
@@ -152,11 +152,11 @@ Like this:
 
     use Spreadsheet::WriteExcelXML;                             # Step 0
 
-    my $workbook = Spreadsheet::WriteExcelXML->new("perl.xml"); # Step 1
+    my $workbook = Spreadsheet::WriteExcelXML->new("perl.xls"); # Step 1
     $worksheet   = $workbook->add_worksheet();                  # Step 2
     $worksheet->write('A1', "Hi Excel!");                       # Step 3
 
-This will create an Excel file called C<perl.xml> with a single worksheet and the text C<"Hi Excel!"> in the relevant cell. And that's it. Okay, so there is actually a zeroth step as well, but C<use module> goes without saying. There are also more than 40 examples that come with the distribution and which you can use to get you started. See L<EXAMPLES>.
+This will create an Excel file called C<perl.xls> with a single worksheet and the text C<"Hi Excel!"> in the relevant cell. And that's it. Okay, so there is actually a zeroth step as well, but C<use module> goes without saying. There are also more than 40 examples that come with the distribution and which you can use to get you started. See L<EXAMPLES>.
 
 Those of you who read the instructions first and assemble the furniture afterwards will know how to proceed. ;-)
 
@@ -189,16 +189,16 @@ If you are unfamiliar with object oriented interfaces or the way that they are i
 
 A new Excel workbook is created using the C<new()> constructor which accepts either a filename or a filehandle as a parameter. The following example creates a new Excel file based on a filename:
 
-    my $workbook  = Spreadsheet::WriteExcelXML->new('filename.xml');
+    my $workbook  = Spreadsheet::WriteExcelXML->new('filename.xls');
     my $worksheet = $workbook->add_worksheet();
     $worksheet->write(0, 0, "Hi Excel!");
 
 Here are some other examples of using C<new()> with filenames:
 
     my $workbook1 = Spreadsheet::WriteExcelXML->new($filename);
-    my $workbook2 = Spreadsheet::WriteExcelXML->new("/tmp/filename.xml");
-    my $workbook3 = Spreadsheet::WriteExcelXML->new("c:\\tmp\\filename.xml");
-    my $workbook4 = Spreadsheet::WriteExcelXML->new('c:\tmp\filename.xml');
+    my $workbook2 = Spreadsheet::WriteExcelXML->new("/tmp/filename.xls");
+    my $workbook3 = Spreadsheet::WriteExcelXML->new("c:\\tmp\\filename.xls");
+    my $workbook4 = Spreadsheet::WriteExcelXML->new('c:\tmp\filename.xls');
 
 The last two examples demonstrates how to create a file on DOS or Windows where it is necessary to either escape the directory separator C<\> or to use single quotes to ensure that it isn't interpolated. For more information see C<perlfaq5: Why can't I use "C:\temp\foo" in DOS paths?>.
 
@@ -206,7 +206,7 @@ The C<new()> constructor returns a Spreadsheet::WriteExcelXML object that you ca
 
 If the file cannot be created, due to file permissions or some other reason,  C<new> will return C<undef>. Therefore, it is good practice to check the return value of C<new> before proceeding. As usual the Perl variable C<$!> will be set if there is a file creation error. You will also see one of the warning messages detailed in L<DIAGNOSTICS>:
 
-    my $workbook  = Spreadsheet::WriteExcelXML->new('protected.xml');
+    my $workbook  = Spreadsheet::WriteExcelXML->new('protected.xls');
     die "Problems creating new Excel file: $!" unless defined $workbook;
 
 You can also pass a valid filehandle to the C<new()> constructor. For example in a CGI program you could do something like this:
@@ -221,12 +221,45 @@ See also, the C<cgi.pl> program in the C<examples> directory of the distro.
 
 However, this special case will not work in C<mod_perl> programs where you will have to do something like the following:
 
+    # mod_perl 1
+    ...
     tie *XLS, 'Apache';
+
     my $workbook  = Spreadsheet::WriteExcelXML->new(\*XLS);
+    ...
 
-See also, the C<mod_perl.pl> program in the C<examples> directory of the distro.
+    # mod_perl 2
+    ...
+    tie *XLS => $r;  # Tie to the Apache::RequestRec object
 
-Filehandles can also be useful if you want to stream an Excel file over a socket or if you want to store an Excel file in a tied scalar. For some examples of using filehandles with Spreadsheet::WriteExcelXML see the C<filehandle.pl> program in the C<examples> directory of the distro.
+    my $workbook  = Spreadsheet::WriteExcelXML->new(\*XLS);
+    ...
+
+See also, the C<mod_perl1.pl> and C<mod_perl2.pl> programs in the C<examples> directory of the distro.
+
+Filehandles can also be useful if you want to stream an Excel file over a socket or if you want to store an Excel file in a scalar.
+
+For example here is a way to write an Excel file to a scalar with C<perl 5.8>:
+
+    #!/usr/bin/perl -w
+
+    use strict;
+    use Spreadsheet::WriteExcel;
+
+    # Requires perl 5.8 or later
+    open my $fh, '>', \my $str or die "Failed to open filehandle: $!";
+
+    my $workbook  = Spreadsheet::WriteExcel->new($fh);
+    my $worksheet = $workbook->add_worksheet();
+
+    $worksheet->write(0, 0,  "Hi Excel!");
+
+    $workbook->close();
+
+    # The Excel file in now in $str.
+    print $str;
+
+See also the C<write_to_scalar.pl> and C<filehandle.pl> programs in the C<examples> directory of the distro.
 
 
 
@@ -436,6 +469,7 @@ The following methods are available through a new worksheet:
     store_formula() **
     repeat_formula() **
     insert_bitmap() ***
+    add_write_handler()
     get_name()
     activate() *
     select() *
@@ -574,6 +608,10 @@ The write() method will ignore empty strings or C<undef> tokens unless a format 
 
 One problem with the C<write()> method is that occasionally data looks like a number but you don't want it treated as a number. For example, zip codes or ID numbers often start with a leading zero. If you write this data as a number then the leading zero(s) will be stripped. You can change this default behaviour by using the C<keep_leading_zeros()> method. While this property is in place any integers with leading zeros will be treated as strings and the zeros will be preserved. See the C<keep_leading_zeros()> section for a full discussion of this issue.
 
+You can also add your own data handlers to the C<write()> method using C<add_write_handler()>.
+
+On systems with C<perl 5.8> and later the C<write()> method will also handle strings in Perl's C<utf8> format.
+
 The C<write> methods return:
 
     0 for success.
@@ -608,6 +646,8 @@ Write a string to the cell specified by C<$row> and C<$column>:
 The maximum string size is 32,767 characters and the string can be in UTF8 format.
 
 The C<$format> parameter is optional.
+
+On systems with C<perl 5.8> and later the C<write()> method will also handle strings in Perl's C<utf8> format. See also the C<unicode_*.pl> programs in the examples directory of the distro.
 
 In general it is sufficient to use the C<write()> method. However, you may sometimes wish to use the C<write_string()> method to write data that looks like a number but that you don't want treated as a number. For example, zip codes or phone numbers:
 
@@ -675,7 +715,7 @@ The C<keep_leading_zeros()> property is off by default. The C<keep_leading_zeros
     $worksheet->keep_leading_zeros(1); # Set on
     $worksheet->keep_leading_zeros(0); # Set off
 
-
+See also the C<add_write_handler()> method.
 
 
 =head2 write_blank($row, $column, $format)
@@ -763,7 +803,7 @@ The C<write_row()> method allows the following idiomatic conversion of a text fi
     use strict;
     use Spreadsheet::WriteExcelXML;
 
-    my $workbook  = Spreadsheet::WriteExcelXML->new('file.xml');
+    my $workbook  = Spreadsheet::WriteExcelXML->new('file.xls');
     my $worksheet = $workbook->add_worksheet();
 
     open INPUT, "file.txt" or die "Couldn't open file: $!";
@@ -1038,6 +1078,83 @@ Note: the C<write_comment()> method was previously supplied as an external examp
     Subroutine _store_comment  redefined at ... line ...
 
 You can safely delete the user defined C<write_comment()> code from your old programs and use the module defined method instead.
+
+
+
+
+=head2 add_write_handler($re, $code_ref)
+
+This method is used to extend the Spreadsheet::WriteExcel write() method to handle user defined data.
+
+If you refer to the section on C<write()> above you will see that it acts as an alias for several more specific C<write_*> methods. However, it doesn't always act in exactly the way that you would like it to.
+
+One solution is to filter the input data yourself and call the appropriate C<write_*> method. Another approach is to use the C<add_write_handler()> method to add your own automated behaviour to C<write()>.
+
+The C<add_write_handler()> method take two arguments, C<$re>, a regular expression to match incoming data and C<$code_ref> a callback function to handle the matched data:
+
+    $worksheet->add_write_handler(qr/^\d\d\d\d$/, \&my_write);
+
+(In the these examples the C<qr> operator is used to quote the regular expression strings, see L<perlop> for more details).
+
+The method is use as follows. say you wished to write 7 digit ID numbers as a string so that any leading zeros were preserved*, you could do something like the following:
+
+    $worksheet->add_write_handler(qr/^\d{7}$/, \&write_my_id);
+
+
+    sub write_my_id {
+        my $worksheet = shift;
+        return $worksheet->write_string(@_);
+    }
+
+* You could also use the C<keep_leading_zeros()> method for this.
+
+Then if you call C<write()> with an appropriate string it will be handled automatically:
+
+    # Writes 0000000. It would normally be written as a number; 0.
+    $worksheet->write('A1', '0000000');
+
+The callback function will receive a reference to the calling worksheet and all of the other arguments that were passed to C<write()>. The callback will see an C<@_> argument list that looks like the following:
+
+    $_[0]   A ref to the calling worksheet. *
+    $_[1]   Zero based row number.
+    $_[2]   Zero based column number.
+    $_[3]   A number or string or token.
+    $_[4]   A format ref if any.
+    $_[5]   Any other argruments.
+    ...
+
+    *  It is good style to shift this off the list so the @_ is the same
+       as the argument list seen by write().
+
+Your callback should C<return()> the return value of the C<write_*> method that was called or C<undef> to indicate that you rejected the match and want C<write()> to continue as normal.
+
+So for example if you wished to apply the previous filter only to ID values that occur in the first column you could modify your callback function as follows:
+
+
+    sub write_my_id {
+        my $worksheet = shift;
+        my $col       = $_[1];
+
+        if ($col == 0) {
+            return $worksheet->write_string(@_);
+        }
+        else {
+            # Reject the match and return control to write()
+            return undef;
+        }
+    }
+
+Now, you will get different behaviour for the first column and other columns:
+
+    $worksheet->write('A1', '0000000'); # Writes 0000000
+    $worksheet->write('B1', '0000000'); # Writes 0
+
+
+You may add more than one handler in which case they will be called in the order that they were added.
+
+Note, the C<add_write_handler()> method is particularly suited for handling dates.
+
+See the C<write_handler 1-4> programs in the C<examples> directory for further examples.
 
 
 
@@ -2006,7 +2123,7 @@ In general a method call without an argument will turn a property on, for exampl
 
 =head1 FORMAT METHODS
 
-The Format object methods are described in more detail in the following sections. In addition, there is a Perl program called C<formats.pl> in the C<examples> directory of the WriteExcelXML distribution. This program creates an Excel workbook called C<formats.xml> which contains examples of almost all the format types.
+The Format object methods are described in more detail in the following sections. In addition, there is a Perl program called C<formats.pl> in the C<examples> directory of the WriteExcelXML distribution. This program creates an Excel workbook called C<formats.xls> which contains examples of almost all the format types.
 
 The following Format methods are available:
 
@@ -3046,8 +3163,8 @@ The following example shows some of the basic features of Spreadsheet::WriteExce
     use strict;
     use Spreadsheet::WriteExcelXML;
 
-    # Create a new workbook called simple.xml and add a worksheet
-    my $workbook  = Spreadsheet::WriteExcelXML->new("simple.xml");
+    # Create a new workbook called simple.xls and add a worksheet
+    my $workbook  = Spreadsheet::WriteExcelXML->new("simple.xls");
     my $worksheet = $workbook->add_worksheet();
 
     # The general syntax is write($row, $column, $token). Note that row and
@@ -3085,7 +3202,7 @@ The following is a general example which demonstrates some features of working w
     use Spreadsheet::WriteExcelXML;
 
     # Create a new Excel workbook
-    my $workbook = Spreadsheet::WriteExcelXML->new("regions.xml");
+    my $workbook = Spreadsheet::WriteExcelXML->new("regions.xls");
 
     # Add some worksheets
     my $north = $workbook->add_worksheet("North");
@@ -3129,7 +3246,7 @@ This example shows how to use a conditional numerical format with colours to ind
     use Spreadsheet::WriteExcelXML;
 
     # Create a new workbook and add a worksheet
-    my $workbook  = Spreadsheet::WriteExcelXML->new("stocks.xml");
+    my $workbook  = Spreadsheet::WriteExcelXML->new("stocks.xls");
     my $worksheet = $workbook->add_worksheet();
 
     # Set the column width for columns 1, 2, 3 and 4
@@ -3201,7 +3318,7 @@ The following is a simple example of using functions.
     use Spreadsheet::WriteExcelXML;
 
     # Create a new workbook and add a worksheet
-    my $workbook  = Spreadsheet::WriteExcelXML->new("stats.xml");
+    my $workbook  = Spreadsheet::WriteExcelXML->new("stats.xls");
     my $worksheet = $workbook->add_worksheet('Test data');
 
     # Set the column width for columns 1
@@ -3260,7 +3377,7 @@ The following is a simple example of using functions.
 
 =head2 Example 5
 
-The following example converts a tab separated file called C<tab.txt> into an Excel file called C<tab.xml>.
+The following example converts a tab separated file called C<tab.txt> into an Excel file called C<tab.xls>.
 
     #!/usr/bin/perl -w
 
@@ -3269,7 +3386,7 @@ The following example converts a tab separated file called C<tab.txt> into an Ex
 
     open (TABFILE, "tab.txt") or die "tab.txt: $!";
 
-    my $workbook  = Spreadsheet::WriteExcelXML->new("tab.xml");
+    my $workbook  = Spreadsheet::WriteExcelXML->new("tab.xls");
     my $worksheet = $workbook->add_worksheet();
 
     # Row and column are zero indexed
@@ -3297,48 +3414,78 @@ different features and options of the module.
 
     Getting started
     ===============
-    simple.pl           An example of some of the basic features.
-    regions.pl          Demonstrates multiple worksheets.
-    stats.pl            Basic formulas and functions.
-    formats.pl          Creates a demo of the available formatting.
-    demo.pl             Creates a demo of some of the features.
-    bug_report.pl       A template for submitting bug reports.
+    bug_report.pl           A template for submitting bug reports.
+    demo.pl                 Creates a demo of some of the features.
+    formats.pl              Creates a demo of the available formatting.
+    regions.pl              Demonstrates multiple worksheets.
+    simple.pl               An example of some of the basic features.
+    stats.pl                Basic formulas and functions.
 
 
     Advanced
     ========
-    sales.pl            An example of a simple sales spreadsheet.
-    stocks.pl           Demonstrates conditional formatting.
-    write_array.pl      Example of writing 1D or 2D arrays of data.
-    chess.pl            An example of formatting using properties.
-    colors.pl           Demo of the colour palette and named colours.
-    sendmail.pl         Send an Excel email attachment using Mail::Sender.
-    stats_ext.pl        Same as stats.pl with external references.
-    cgi.pl              A simple CGI program.
-    mod_perl.pl         A simple mod_perl program.
-    hyperlink1.pl       Shows how to create web hyperlinks.
-    hyperlink2.pl       Examples of internal and external hyperlinks.
-    textwrap.pl         Demonstrates text wrapping options.
-    protection.pl       Example of cell locking and formula hiding.
-    copyformat.pl       Example of copying a cell format.
-    web_component.pl    Create an interactive Excel webpage with IE.
-    array_formula.pl    Examples of how to write array formulas.
+    array_formula.pl        Examples of how to write array formulas.
+    cgi.pl                  A simple CGI program.
+    chess.pl                An example of formatting using properties.
+    colors.pl               Demo of the colour palette and named colours.
+    copyformat.pl           Example of copying a cell format.
+    diag_border.pl          A simple example of diagonal cell borders.
+    filehandle.pl           Examples of working with filehandles.
+    hyperlink1.pl           Shows how to create web hyperlinks.
+    hyperlink2.pl           Examples of internal and external hyperlinks.
+    indent.pl               An example of cell indentation.
+    merge1.pl               A simple example of cell merging.
+    merge2.pl               A simple example of cell merging with formatting.
+    merge3.pl               Add hyperlinks to merged cells.
+    merge4.pl               An advanced example of merging with formatting.
+    merge5.pl               An advanced example of merging with formatting.
+    mod_perl1.pl            A simple mod_perl 1 program.
+    mod_perl2.pl            A simple mod_perl 2 program.
+    protection.pl           Example of cell locking and formula hiding.
+    sales.pl                An example of a simple sales spreadsheet.
+    sendmail.pl             Send an Excel email attachment using Mail::Sender.
+    stats_ext.pl            Same as stats.pl with external references.
+    stocks.pl               Demonstrates conditional formatting.
+    textwrap.pl             Demonstrates text wrapping options.
+    web_component.pl        Create an interactive Excel webpage with IE.
+    write_arrays.pl         Example of writing 1D or 2D arrays of data.
+    write_to_scalar.pl      Example of writing an Excel file to a Perl scalar.
+    write_handler1.pl       Example of extending the write() method. Step 1.
+    write_handler2.pl       Example of extending the write() method. Step 2.
+    write_handler3.pl       Example of extending the write() method. Step 3.
+    write_handler4.pl       Example of extending the write() method. Step 4.
+
+
+    Unicode
+    =======
+    unicode.pl              Simple example of using Unicode UTF16 strings.
+    unicode_japan.pl        Write Japanese Unicode strings using UTF16.
+    unicode_list.pl         List the chars in a Unicode font.
+    unicode_2022_jp.pl      Japanese: ISO-2022-JP to utf8 in perl 5.8.
+    unicode_8859_11.pl      Thai:     ISO-8859_11 to utf8 in perl 5.8.
+    unicode_8859_7.pl       Greek:    ISO-8859_7  to utf8 in perl 5.8.
+    unicode_big5.pl         Chinese:  BIG5        to utf8 in perl 5.8.
+    unicode_cp1251.pl       Russian:  CP1251      to utf8 in perl 5.8.
+    unicode_cp1256.pl       Arabic:   CP1256      to utf8 in perl 5.8.
+    unicode_koi8r.pl        Russian:  KOI8-R      to utf8 in perl 5.8.
+    unicode_polish_utf8.pl  Polish :  UTF8        to utf8 in perl 5.8.
+    unicode_shift_jis.pl    Japanese: Shift JIS   to utf8 in perl 5.8.
 
 
     Utility
     =======
-    convertA1.pl        Helper functions for dealing with A1 notation.
-    csv2xls.pl          Program to convert a CSV file to an Excel file.
-    tab2xls.pl          Program to convert a tab separated file to xls.
-    datecalc1.pl        Convert Unix/Perl time to Excel time.
-    datecalc2.pl        Calculate an Excel date using Date::Calc.
-    writemany.pl        Write an 2d array of values in one go.
+    csv2xls.pl              Program to convert a CSV file to an Excel file.
+    datecalc1.pl            Convert Unix/Perl time to Excel time.
+    datecalc2.pl            Calculate an Excel date using Date::Calc.
+    tab2xls.pl              Program to convert a tab separated file to xls.
 
 
     Developer
     =========
-    filehandle.pl       Examples of working with filehandles.
-    writeA1.pl          Example of how to extend the module.
+    convertA1.pl            Helper functions for dealing with A1 notation.
+    writeA1.pl              Example of how to extend the module.
+
+
 
 
 
@@ -3586,25 +3733,19 @@ Spreadsheet::ParseExcel: http://search.cpan.org/search?dist=Spreadsheet-ParseExc
 
 John McNamara jmcnamara@cpan.org
 
-    now your boyfriend burned his jacket
-    ticket expired
-    tyres are knackered
-    knackers are tired
+    so much depends
+    upon
 
-    you can tell your tale to the gutter press
-    get paid to peddle smut
-    now you've ridden the road of excess
-    that leads to the psycle sluts
+    a red wheel
+    barrow
 
-    or you can dine and whine on stuff that's bound to give you boils
-    hot dogs direct from cruft's
-    done in diesel oil
-    or the burger joint around the bend
-    where the meals thank christ are skimpy
-    for you that's how the world could end
-    not with a bang but a wimpy.
+    glazed with rain
+    water
 
-    -- John Cooper Clarke
+    beside the white
+    chickens.
+
+    -- William Carlos Williams
 
 
 =head1 PATENT LICENSE

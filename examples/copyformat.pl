@@ -10,7 +10,7 @@ use strict;
 use Spreadsheet::WriteExcelXML;
 
 # Create workbook1
-my $workbook1       = Spreadsheet::WriteExcelXML->new("workbook1.xml");
+my $workbook1       = Spreadsheet::WriteExcelXML->new("workbook1.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook1;
 
@@ -19,7 +19,7 @@ my $format1a        = $workbook1->add_format();
 my $format1b        = $workbook1->add_format();
 
 # Create workbook2
-my $workbook2       = Spreadsheet::WriteExcelXML->new("workbook2.xml");
+my $workbook2       = Spreadsheet::WriteExcelXML->new("workbook2.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook2;
 

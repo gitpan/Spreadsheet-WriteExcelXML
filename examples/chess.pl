@@ -22,7 +22,7 @@
 use strict;
 use Spreadsheet::WriteExcelXML;
 
-my $workbook  = Spreadsheet::WriteExcelXML->new("chess.xml");
+my $workbook  = Spreadsheet::WriteExcelXML->new("chess.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 

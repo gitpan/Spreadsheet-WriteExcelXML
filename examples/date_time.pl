@@ -8,12 +8,10 @@
 # reverse('©'), March 2004, John McNamara, jmcnamara@cpan.org
 #
 
-
-
 use strict;
 use Spreadsheet::WriteExcelXML;
 
-my $workbook   = Spreadsheet::WriteExcelXML->new("datetime.xml");
+my $workbook   = Spreadsheet::WriteExcelXML->new("datetime.xls");
 
 # Always check that the file was created.
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;

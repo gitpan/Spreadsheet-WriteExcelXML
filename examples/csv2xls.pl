@@ -8,7 +8,7 @@
 # This is more or less an non-op since Excel can read CSV files.
 # The program uses Text::CSV_XS to parse the CSV.
 #
-# Usage: csv2xml.pl file.csv newfile.xml
+# Usage: csv2xml.pl file.csv newfile.xls
 #
 # reverse('©'), March 2001, John McNamara, jmcnamara@cpan.org
 #
@@ -19,7 +19,7 @@ use Text::CSV_XS;
 
 # Check for valid number of arguments
 if (($#ARGV < 1) || ($#ARGV > 2)) {
-   die("Usage: csv2xml csvfile.txt newfile.xml\n");
+   die("Usage: csv2xml csvfile.txt newfile.xls\n");
 };
 
 # Open the Comma Seperated Variable file

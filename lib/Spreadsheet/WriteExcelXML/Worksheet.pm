@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter);
 
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 ###############################################################################
 #
@@ -93,6 +93,12 @@ sub new {
     $self->{_screen_gridlines}  = 1;
     $self->{_print_headers}     = 0;
 
+    $self->{_page_order}        = 0;
+    $self->{_black_white}       = 0;
+    $self->{_draft_quality}     = 0;
+    $self->{_print_comments}    = 0;
+    $self->{_page_start}        = 1;
+
     $self->{_fit_page}          = 0;
     $self->{_fit_width}         = 0;
     $self->{_fit_height}        = 0;
@@ -116,6 +122,8 @@ sub new {
     $self->{_outline_below}     = 1;
     $self->{_outline_right}     = 1;
     $self->{_outline_on}        = 1;
+
+    $self->{_write_match}       = [];
 
     $self->{prev_col}           = -1;
 
@@ -918,6 +926,24 @@ sub keep_leading_zeros {
 
 ###############################################################################
 #
+# add_write_handler($re, $code_ref)
+#
+# Allow the user to add their own matches and handlers to the write() method.
+#
+sub add_write_handler {
+
+    my $self = shift;
+
+    return unless @_ == 2;
+    return unless ref $_[1] eq 'CODE';
+
+    push @{$self->{_write_match}}, [ @_ ];
+}
+
+
+
+###############################################################################
+#
 # write($row, $col, $token, $format)
 #
 # Parse $token and call appropriate write method. $row and $column are zero
@@ -938,6 +964,19 @@ sub write {
 
     # Handle undefs as blanks
     $token = '' unless defined $token;
+
+
+    # First try user defined matches.
+    for my $aref (@{$self->{_write_match}}) {
+        my $re  = $aref->[0];
+        my $sub = $aref->[1];
+
+        if ($token =~ /$re/) {
+            my $match = &$sub($self, @_);
+            return $match if defined $match;
+        }
+    }
+
 
     # Match an array ref.
     if (ref $token eq "ARRAY") {
@@ -1972,7 +2011,7 @@ sub write_date_time {
     return -2 if $self->_check_dimensions($row, $col);
 
     my $str_error = 0;
-    my $date_time = $self->_check_date_time($str);
+    my $date_time = $self->convert_date_time($str);
 
     # If the date isn't valid then write it as a string.
     if (not defined $date_time) {
@@ -1989,7 +2028,7 @@ sub write_date_time {
 
 ###############################################################################
 #
-# _check_date_time($date_time_string)
+# convert_date_time($date_time_string)
 #
 # The function takes a date and time in ISO8601 "yyyy-mm-ddThh:mm:ss.ss" format
 # and converts it to a decimal number representing a valid Excel date.
@@ -2008,7 +2047,7 @@ sub write_date_time {
 #            A decimal number representing a valid Excel date, or
 #            undef if the date is invalid.
 #
-sub _check_date_time {
+sub convert_date_time {
 
     my $self      = shift;
     my $date_time = $_[0];
@@ -3371,7 +3410,7 @@ sub _write_xml_cell {
         my $type;
 
         # Match DateTime string.
-        if ($self->_check_date_time($data)) {
+        if ($self->convert_date_time($data)) {
             $type = 'DateTime';
         }
         # Match integer with leading zero(s)

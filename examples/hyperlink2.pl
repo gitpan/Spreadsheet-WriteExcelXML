@@ -23,12 +23,12 @@ use strict;
 use Spreadsheet::WriteExcelXML;
 
 # Create three workbooks:
-#   C:\Temp\Europe\Ireland.xml
-#   C:\Temp\Europe\Italy.xml
-#   C:\Temp\Asia\China.xml
+#   C:\Temp\Europe\Ireland.xls
+#   C:\Temp\Europe\Italy.xls
+#   C:\Temp\Asia\China.xls
 #
 
-my $ireland   = Spreadsheet::WriteExcelXML->new('C:\Temp\Europe\Ireland.xml');
+my $ireland   = Spreadsheet::WriteExcelXML->new('C:\Temp\Europe\Ireland.xls');
 
 # Always check that the file was created.
 die "Couldn't create new Excel file: $!.\n" unless defined $ireland;
@@ -44,7 +44,7 @@ my $ire_url_format = $ireland->add_format(
 
 
 
-my $italy     = Spreadsheet::WriteExcelXML->new('C:\Temp\Europe\Italy.xml');
+my $italy     = Spreadsheet::WriteExcelXML->new('C:\Temp\Europe\Italy.xls');
 
 # Always check that the file was created.
 die "Couldn't create new Excel file: $!.\n" unless defined $ireland;
@@ -60,7 +60,7 @@ my $ita_url_format = $italy->add_format(
 
 
 
-my $china     = Spreadsheet::WriteExcelXML->new('C:\Temp\Asia\China.xml');
+my $china     = Spreadsheet::WriteExcelXML->new('C:\Temp\Asia\China.xls');
 
 # Always check that the file was created.
 die "Couldn't create new Excel file: $!.\n" unless defined $ireland;
@@ -111,29 +111,29 @@ $ire_links->write_url('A7', q{#'Product Data'!A7}, $ire_url_format);
 $ire_links->write('B1', 'External links', $format);
 
 # External link to a local file
-$ire_links->write_url('B2', 'Italy.xml', $ire_url_format);
+$ire_links->write_url('B2', 'Italy.xls', $ire_url_format);
 
 # External link to a local file with worksheet
-$ire_links->write_url('B3', 'Italy.xml#Sales!B3', $ire_url_format);
+$ire_links->write_url('B3', 'Italy.xls#Sales!B3', $ire_url_format);
 
 # External link to a local file with worksheet and alternative string
-$ire_links->write_url('B4', 'Italy.xml#Sales!B4', $ire_url_format, 'Link');
+$ire_links->write_url('B4', 'Italy.xls#Sales!B4', $ire_url_format, 'Link');
 
 # External link to a local file with worksheet and format
-$ire_links->write_url('B5', 'Italy.xml#Sales!B5', $format);
+$ire_links->write_url('B5', 'Italy.xls#Sales!B5', $format);
 
 # External link to a remote file, absolute path
-$ire_links->write_url('B6', 'c:/Temp/Asia/China.xml', $ire_url_format);
+$ire_links->write_url('B6', 'c:/Temp/Asia/China.xls', $ire_url_format);
 
 # External link to a remote file, relative path
-$ire_links->write_url('B7', '../Asia/China.xml', $ire_url_format);
+$ire_links->write_url('B7', '../Asia/China.xls', $ire_url_format);
 
 # External link to a remote file with worksheet
-$ire_links->write_url('B8', 'c:/Temp/Asia/China.xml#Sales!B8',
+$ire_links->write_url('B8', 'c:/Temp/Asia/China.xls#Sales!B8',
                             $ire_url_format);
 
 # External link to a remote file with worksheet (with spaces in the name)
-$ire_links->write_url('B9', q{c:/Temp/Asia/China.xml#'Product Data'!B9},
+$ire_links->write_url('B9', q{c:/Temp/Asia/China.xls#'Product Data'!B9},
                             $ire_url_format);
 
 
@@ -148,15 +148,15 @@ $ire_sales->write_url('A5', '#Links!A5', $ire_url_format, 'Back');
 $ire_sales->write_url('A6', '#Links!A6', $ire_url_format, 'Back');
 $ire_data-> write_url('A7', '#Links!A7', $ire_url_format, 'Back');
 
-$ita_links->write_url('A1', 'Ireland.xml#Links!B2', $ita_url_format, 'Back');
-$ita_sales->write_url('B3', 'Ireland.xml#Links!B3', $ita_url_format, 'Back');
-$ita_sales->write_url('B4', 'Ireland.xml#Links!B4', $ita_url_format, 'Back');
-$ita_sales->write_url('B5', 'Ireland.xml#Links!B5', $ita_url_format, 'Back');
-$cha_links->write_url('A1', 'c:/Temp/Europe/Ireland.xml#Links!B6',
+$ita_links->write_url('A1', 'Ireland.xls#Links!B2', $ita_url_format, 'Back');
+$ita_sales->write_url('B3', 'Ireland.xls#Links!B3', $ita_url_format, 'Back');
+$ita_sales->write_url('B4', 'Ireland.xls#Links!B4', $ita_url_format, 'Back');
+$ita_sales->write_url('B5', 'Ireland.xls#Links!B5', $ita_url_format, 'Back');
+$cha_links->write_url('A1', 'c:/Temp/Europe/Ireland.xls#Links!B6',
                              $cha_url_format, 'Back');
-$cha_sales->write_url('B8', 'c:/Temp/Europe/Ireland.xml#Links!B8',
+$cha_sales->write_url('B8', 'c:/Temp/Europe/Ireland.xls#Links!B8',
                              $cha_url_format, 'Back');
-$cha_data-> write_url('B9', 'c:/Temp/Europe/Ireland.xml#Links!B9',
+$cha_data-> write_url('B9', 'c:/Temp/Europe/Ireland.xls#Links!B9',
                              $cha_url_format, 'Back');
 
 

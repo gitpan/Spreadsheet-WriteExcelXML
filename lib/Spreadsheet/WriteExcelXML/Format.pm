@@ -25,7 +25,7 @@ use Carp;
 use vars qw($AUTOLOAD $VERSION @ISA);
 @ISA = qw(Exporter);
 
-$VERSION = '0.01';
+$VERSION = '0.07';
 
 ###############################################################################
 #
@@ -284,21 +284,23 @@ sub get_border_properties {
     # one line type and one colour when both diagonals are in use.
     if (my $diag_type = $self->{_diag_type}) {
 
-        if (exists $linetypes{$self->{_diag_border}}) {
-            my @attribs = @{$linetypes{$self->{_diag_border}}};
+        # Set a default diagonal border style if none was specified.
+        $self->{_diag_border} = 1 if not $self->{_diag_border};
 
-            if (my $color = $self->{_diag_color}) {
-                $color = $self->convert_to_html_color($color);
-                push @attribs, 'ss:Color', $color;
-            }
 
-            if ($diag_type == 1 or $diag_type == 3) {
-                push @border, ["ss:Position", "DiagonalLeft",  @attribs];
-            }
+        my @attribs = @{$linetypes{$self->{_diag_border}}};
 
-            if ($diag_type == 2 or $diag_type == 3) {
-                push @border, ["ss:Position", "DiagonalRight", @attribs];
-            }
+        if (my $color = $self->{_diag_color}) {
+            $color = $self->convert_to_html_color($color);
+            push @attribs, 'ss:Color', $color;
+        }
+
+        if ($diag_type == 1 or $diag_type == 3) {
+            push @border, ["ss:Position", "DiagonalLeft",  @attribs];
+        }
+
+        if ($diag_type == 2 or $diag_type == 3) {
+            push @border, ["ss:Position", "DiagonalRight", @attribs];
         }
     }
 

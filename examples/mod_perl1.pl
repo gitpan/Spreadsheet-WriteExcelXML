@@ -1,9 +1,9 @@
 ###############################################################################
 #
 # Example of how to use the Spreadsheet::WriteExcelXML module to send an Excel
-# file to a browser using mod_perl and Apache
+# file to a browser using mod_perl 1 and Apache
 #
-# This module ties *xml directly to Apache, and with the correct
+# This module ties *XLS directly to Apache, and with the correct
 # content-disposition/types it will prompt the user to save
 # the file, or open it at this location.
 #
@@ -53,7 +53,7 @@ sub handler {
 
     # Set the filename and send the content type
     # This will appear when they save the spreadsheet
-    my $filename ="cgitest.xml";
+    my $filename ="cgitest.xls";
 
     ####################################################
     ## Send the content type headers
@@ -65,11 +65,10 @@ sub handler {
     # Tie a filehandle to Apache's STDOUT.
     # Create a new workbook and add a worksheet.
     ####################################################
-    my $xml_str;
-    tie *xml => 'Apache';
-    binmode(*xml);
+    tie *XLS => 'Apache';
 
-    my $workbook  = Spreadsheet::WriteExcelXML->new(\*xml);
+
+    my $workbook  = Spreadsheet::WriteExcelXML->new(\*XLS);
     my $worksheet = $workbook->add_worksheet();
 
 

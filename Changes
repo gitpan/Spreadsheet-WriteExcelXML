@@ -1,6 +1,26 @@
 Revision history for Perl module Spreadsheet::WriteExcelXML.
 
 
+2.11 November 11 2004
+
+
+    + Added automatic Unicode handling via utf8 in perl 5.8 and
+      later.
+      Added several unicode_*.pl examples in different encodings.
+      Thanks to Sean Burke for the sample encodings.
+
+    + Added add_write_handler() method to allow users to add
+      their own data handlers to write().
+
+    + Added write_handler examples.
+
+    + Added write_to_scalar.pl example in order to answer frequently
+      asked question about writing an Excel file to a scalar.
+
+    + Added indent.pl, mod_perl1.pl, mod_perl2.pl and diag_border.pl
+      examples.
+
+
 0.06 August 19 2004
 
     ! Enabled merge_range() as per Spreadsheet::WriteExcel.

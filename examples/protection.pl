@@ -11,7 +11,7 @@
 use strict;
 use Spreadsheet::WriteExcelXML;
 
-my $workbook  = Spreadsheet::WriteExcelXML->new("protection.xml");
+my $workbook  = Spreadsheet::WriteExcelXML->new("protection.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 

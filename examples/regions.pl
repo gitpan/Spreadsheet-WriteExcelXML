@@ -12,7 +12,7 @@ use strict;
 use Spreadsheet::WriteExcelXML;
 
 # Create a new Excel workbook
-my $workbook = Spreadsheet::WriteExcelXML->new("regions.xml");
+my $workbook = Spreadsheet::WriteExcelXML->new("regions.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 

@@ -13,7 +13,7 @@
 use strict;
 
 use Spreadsheet::WriteExcelXML;
-use Test::More tests => 192;
+use Test::More tests => 193;
 
 
 
@@ -247,6 +247,12 @@ my @tests2 = (  # Border properties
                           'ss:LineStyle="Continuous" ' .
                           'ss:Weight="1" ' .
                           'ss:Color="#FF0000"/>'                            ],
+
+                # Diagonal borders
+                [['diag_type' => 1],
+                  '<Border ss:Position="DiagonalLeft" ' .
+                          'ss:LineStyle="Continuous" ' .
+                          'ss:Weight="1"/>'                                 ],
 
             );
 

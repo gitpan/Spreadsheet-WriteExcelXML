@@ -13,7 +13,7 @@ use strict;
 use Spreadsheet::WriteExcelXML;
 
 # Create a new workbook and add a worksheet
-my $workbook  = Spreadsheet::WriteExcelXML->new("hyperlink.xml");
+my $workbook  = Spreadsheet::WriteExcelXML->new("hyperlink.xls");
 
 # Always check that the file was created.
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;

@@ -6,7 +6,7 @@
 #
 # The following converts a tab separated file into an Excel file
 #
-# Usage: tab2xml.pl tabfile.txt newfile.xml
+# Usage: tab2xml.pl tabfile.txt newfile.xls
 #
 # reverse('©'), March 2001, John McNamara, jmcnamara@cpan.org
 #
@@ -18,7 +18,7 @@ use Spreadsheet::WriteExcelXML;
 
 # Check for valid number of arguments
 if (($#ARGV < 1) || ($#ARGV > 2)) {
-    die("Usage: tab2xml tabfile.txt newfile.xml\n");
+    die("Usage: tab2xml tabfile.txt newfile.xls\n");
 };
 
 

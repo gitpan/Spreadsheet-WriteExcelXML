@@ -11,7 +11,7 @@
 use strict;
 use Spreadsheet::WriteExcelXML;
 
-my $workbook = Spreadsheet::WriteExcelXML->new("colors.xml");
+my $workbook = Spreadsheet::WriteExcelXML->new("colors.xls");
 
 die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 
