@@ -391,8 +391,8 @@ sub alignment {
     $format11->set_align('justify');
     $format12->set_merge();
 
-    $format13->set_rotation(1);
-    $format14->set_rotation(2);
+    $format13->set_rotation(45);
+    $format14->set_rotation(-45);
     $format15->set_rotation(3);
 
     $worksheet->write(0, 0, 'Vertical',   $heading);
@@ -413,8 +413,8 @@ sub alignment {
     $worksheet->write_blank(2, 7,         $format12);
 
     $worksheet->write(4, 0, 'Rotation', $heading);
-    $worksheet->write(4, 1, 'Rotate 1', $format13);
-    $worksheet->write(4, 2, 'Rotate 2', $format14);
+    $worksheet->write(4, 1, 'Rotate 45',  $format13);
+    $worksheet->write(4, 2, 'Rotate -45', $format14);
     $worksheet->write(4, 3, 'Rotate 3', $format15);
 }
 

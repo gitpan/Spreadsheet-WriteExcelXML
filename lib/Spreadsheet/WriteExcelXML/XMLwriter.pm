@@ -25,7 +25,7 @@ use strict;
 use vars qw($VERSION @ISA);
 @ISA = qw(Exporter);
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 ###############################################################################
 #
@@ -127,6 +127,7 @@ sub _encode_xml_escapes {
         s/>/&gt;/g;
         s/"/&quot;/g; # "
         #s/'/&pos;/g; # Not used
+        s/\n/&#10;/g;
     }
 
     return $value;
@@ -288,7 +289,7 @@ sub _set_printed {
 
 ###############################################################################
 #
-# _set_indentation()
+# set_indentation()
 #
 # Set indentation string used to indent the output. The default is 4 spaces.
 #

@@ -14,7 +14,7 @@
 use strict;
 
 use Spreadsheet::WriteExcelXML::XMLwriter;
-use Test::More tests => 51;
+use Test::More tests => 52;
 
 
 
@@ -58,6 +58,7 @@ my @tests2 = (
                 [ ' " '     => " &quot; "                                   ],
                 [ '<&"\'>'  => "&lt;&amp;&quot;'&gt;"                       ],
                 [ '<test>'  => "&lt;test&gt;"                               ],
+                [ "\n\n\n"  => "&#10;&#10;&#10;"                            ],
 
 
             );
@@ -177,7 +178,7 @@ for my $test_ref (@tests2) {
     my $result    = pop @test_data;
 
     is($writer->_encode_xml_escapes(@test_data), $result,
-       "Testing encoding:\t" . join " ", encode_escapes(@$test_ref));
+       "Testing encoding:\t" . join "\t", encode_escapes(@$test_ref));
 }
 
 
@@ -232,7 +233,7 @@ for my $test_ref (@tests6) {
     my $result    = pop @test_data;
 
     is($writer->_write_xml_content(@test_data), $result,
-       "Testing quoting:\t" . join " ", encode_escapes(@$test_ref));
+       "Testing quoting:\t" . join "\t", encode_escapes(@$test_ref));
 }
 
 ###############################################################################
@@ -245,7 +246,7 @@ for my $test_ref (@tests7) {
     my $result    = pop @test_data;
 
     is($writer->_write_xml_unencoded_content(@test_data), $result,
-       "Testing un-encoded:\t" . join " ", encode_escapes(@$test_ref));
+       "Testing un-encoded:\t" . join "\t", encode_escapes(@$test_ref));
 }
 
 

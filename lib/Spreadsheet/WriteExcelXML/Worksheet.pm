@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter);
 
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 ###############################################################################
 #
@@ -103,11 +103,8 @@ sub new {
     $self->{_protect}           = 0;
     $self->{_password}          = undef;
 
-    $self->{_col_sizes}         = {};
-    $self->{_row_sizes}         = {};
-
-    $self->{_col_formats}       = {};
-    $self->{_row_formats}       = {};
+    $self->{_set_cols}          = {};
+    $self->{_set_rows}          = {};
 
     $self->{_zoom}              = 100;
     $self->{_print_scale}       = 100;
@@ -120,9 +117,6 @@ sub new {
     $self->{_outline_right}     = 1;
     $self->{_outline_on}        = 1;
 
-
-
-    $self->{prev_row}           = -1;
     $self->{prev_col}           = -1;
 
     $self->{_table}             = [];
@@ -172,9 +166,6 @@ sub _close {
 
     $self->_write_xml_start_tag(1, 1, 0, 'Worksheet', 'ss:Name', $self->{_name});
 
-
-    # Update the sheet dimensions
-    $self->_store_dimensions();
 
 
     # Write the Table element and the child Row, Cell and Data elements.
@@ -248,14 +239,6 @@ sub _close {
     # Prepend the EXTERNCOUNT of external references.
     $self->_store_externcount($num_sheets);
 
-    # Prepend the COLINFO records if they exist
-    if (@{$self->{_colinfo}}){
-        while (@{$self->{_colinfo}}) {
-            my $arrayref = pop @{$self->{_colinfo}};
-            $self->_store_colinfo(@$arrayref);
-        }
-        $self->_store_defcol();
-    }
 
     #
     # End of prepend. Read upwards from here.
@@ -371,7 +354,7 @@ sub protect {
 
 ###############################################################################
 #
-# set_column($firstcol, $lastcol, $width, $format, $hidden, $level)
+# set_column($firstcol, $lastcol, $width, $format, $hidden, $autofit)
 #
 # Set the width of a single column or a range of columns.
 # See also: _store_colinfo
@@ -390,22 +373,31 @@ sub set_column {
         splice @_, 1, 1; # $row2
     }
 
-    push @{$self->{_colinfo}}, [ @_ ];
-
-
-    # Store the col sizes for use when calculating image vertices taking
-    # hidden columns into account. Also store the column formats.
-    #
-    return if @_ < 3; # Ensure at least $firstcol, $lastcol and $width
-
-    my $width  = $_[4] ? 0 : $_[2]; # Set width to zero if column is hidden
-    my $format = $_[3];
 
     my ($firstcol, $lastcol) = @_;
 
+    # Ensure at least $firstcol, $lastcol and $width
+    return if @_ < 3;
+
+    # Check that column number is valid and store the max value
+    return if $self->_check_dimensions(0, $lastcol);
+
+
+    my $width   = $_[2];
+    my $format  = _XF($self, 0, 0, $_[3]);
+    my $hidden  = $_[4];
+    my $autofit = $_[5];
+
+    if (defined $width) {
+        $width = $self->_size_col($_[2]);
+
+        # The cell is hidden if the width is zero.
+        $hidden = 1 if $width == 0;
+    }
+
+
     foreach my $col ($firstcol .. $lastcol) {
-        $self->{_col_sizes}->{$col}   = $width;
-        $self->{_col_formats}->{$col} = $format if defined $format;
+        $self->{_set_cols}->{$col} = [$width, $format, $hidden, $autofit];
     }
 }
 
@@ -1099,52 +1091,7 @@ sub write_comment {
 
     my $self      = shift;
 
-    # Check for a cell reference in A1 notation and substitute row and column
-    if ($_[0] =~ /^\D/) {
-        @_ = $self->_substitute_cellref(@_);
-    }
-
-
-    if (@_ < 3) { return -1 } # Check the number of args
-
-    my $row       = $_[0];
-    my $col       = $_[1];
-    my $str       = $_[2];
-    my $strlen    = length($_[2]);
-    my $str_error = 0;
-    my $str_max   = 30831;
-    my $note_max  = 2048;
-
-    if ($row >= $self->{_xls_rowmax}) { return -2 }
-    if ($col >= $self->{_xls_colmax}) { return -2 }
-    if ($row <  $self->{_dim_rowmin}) { $self->{_dim_rowmin} = $row }
-    if ($row >  $self->{_dim_rowmax}) { $self->{_dim_rowmax} = $row }
-    if ($col <  $self->{_dim_colmin}) { $self->{_dim_colmin} = $col }
-    if ($col >  $self->{_dim_colmax}) { $self->{_dim_colmax} = $col }
-
-    # String must be <= 30831 chars
-    if ($strlen > $str_max) {
-        $str       = substr($str, 0, $str_max);
-        $strlen    = $str_max;
-        $str_error = -3;
-    }
-
-    # A comment can be up to 30831 chars broken into segments of 2048 chars.
-    # The first NOTE record contains the total string length. Each subsequent
-    # NOTE record contains the length of that segment.
-    #
-    my $comment = substr($str, 0, $note_max, '');
-    $self->_store_comment($row, $col, $comment, $strlen); # First NOTE
-
-    # Subsequent NOTE records
-    while ($str) {
-        $comment = substr($str, 0, $note_max, '');
-        $strlen  = length($comment);
-        # Row is -1 to indicate a continuation NOTE
-        $self->_store_comment(-1, 0, $comment, $strlen);
-    }
-
-    return $str_error;
+    # TODO
 }
 
 
@@ -1159,18 +1106,12 @@ sub write_comment {
 sub _XF {
 
     my $self   = $_[0];
-    my $row    = $_[1];
+    my $row    = $_[1]; # TODO remove
     my $col    = $_[2];
     my $format = $_[3];
 
     if (ref($format)) {
         return $format->get_xf_index();
-    }
-    elsif (exists $self->{_row_formats}->{$row}) {
-        return $self->{_row_formats}->{$row}->get_xf_index();
-    }
-    elsif (exists $self->{_col_formats}->{$col}) {
-        return $self->{_col_formats}->{$col}->get_xf_index();
     }
     else {
         return 0; # 0x0F for Spreadsheet::WriteExcel
@@ -1305,7 +1246,7 @@ sub _sort_pagebreaks {
 #
 # _encode_password($password)
 #
-# Based on the algorithm provided by Daniel Rentz of OpenOffice.
+# Based on the algorithm provided by Daniel Rentz of OpenOffice.org.
 #
 #
 sub _encode_password {
@@ -2191,77 +2132,33 @@ sub _check_date_time {
 # set_row($row, $height, $XF, $hidden, $level)
 #
 # This method is used to set the height and XF format for a row.
-# Writes the  BIFF record ROW.
 #
 sub set_row {
 
-    my $self        = shift;
-    my $record      = 0x0208;               # Record identifier
-    my $length      = 0x0010;               # Number of bytes to follow
+    my $self    = shift;
+    my $row     = $_[0];
 
-    my $rw          = $_[0];                # Row Number
-    my $colMic      = 0x0000;               # First defined column
-    my $colMac      = 0x0000;               # Last defined column
-    my $miyRw;                              # Row height
-    my $irwMac      = 0x0000;               # Used by Excel to optimise loading
-    my $reserved    = 0x0000;               # Reserved
-    my $grbit       = 0x0000;               # Option flags
-    my $ixfe;                               # XF index
-    my $height      = $_[1];                # Format object
-    my $format      = $_[2];                # Format object
-    my $hidden      = $_[3] || 0;           # Hidden flag
-    my $level       = $_[4] || 0;           # Outline level
+    # Ensure at least $row and $height
+    return if @_ < 2;
+
+    # Check that row number is valid and store the max value
+    return if $self->_check_dimensions($row, 0);
 
 
-    # Check for a format object
-    if (ref $format) {
-        $ixfe = $format->get_xf_index();
-    }
-    else {
-        $ixfe = 0x0F;
+    my $height  = $_[1];
+    my $format  = _XF($self, 0, 0, $_[2]);
+    my $hidden  = $_[3];
+    my $autofit = $_[4];
+
+    if ($height) {
+        $height = $self->_size_row($_[1]);
+
+        # The cell is hidden if the width is zero.
+        $hidden = 1 if $height == 0;
     }
 
 
-    # Set the row height in units of 1/20 of a point. Note, some heights may
-    # not be obtained exactly due to rounding in Excel.
-    #
-    if (defined $height) {
-        $miyRw = $height *20;
-    }
-    else {
-        $miyRw = 0xff; # The default row height
-    }
-
-
-    # Set the limits for the outline levels (0 <= x <= 7).
-    $level = 0 if $level < 0;
-    $level = 7 if $level > 7;
-
-    $self->{_outline_row_level} = $level if $level >$self->{_outline_row_level};
-
-
-    # Set the options flags. fUnsynced is used to show that the font and row
-    # heights are not compatible. This is usually the case for WriteExcelXML.
-    # The collapsed flag 0x10 doesn't seem to be used to indicate that a row
-    # is collapsed. Instead it is used to indicate that the previous row is
-    # collapsed. The zero height flag, 0x20, is used to collapse a row.
-    #
-    $grbit |= $level;
-    $grbit |= 0x0020 if $hidden;
-    $grbit |= 0x0040; # fUnsynced
-    $grbit |= 0x0080 if $format;
-    $grbit |= 0x0100;
-
-
-    # TODO Update for ExcelXML format
-
-    # Store the row sizes for use when calculating image vertices.
-    # Also store the column formats.
-    #
-    return if @_ < 2;# Ensure at least $row and $height
-
-    $self->{_row_sizes}->{$_[0]}   = $height;
-    $self->{_row_formats}->{$_[0]} = $format if defined $format;
+    $self->{_set_rows}->{$row} = [$height, $format, $hidden, $autofit];
 }
 
 
@@ -2292,27 +2189,6 @@ sub _check_dimensions {
 }
 
 
-###############################################################################
-#
-# _store_dimensions()
-#
-# Writes Excel DIMENSIONS to define the area in which there is data.
-#
-sub _store_dimensions {
-
-    my $self = shift;
-
-    # Set the data range if data has been written to the worksheet
-    if ($self->{_dim_changed}) {
-        $self->{_dim_rowmax} = $self->{_dim_rowmax} +1;
-        $self->{_dim_colmax} = $self->{_dim_colmax} +1;
-    }
-    else {
-        # Special case, not data was written
-        $self->{_dim_rowmax} = 0;
-        $self->{_dim_colmax} = 0;
-    }
-}
 
 
 ###############################################################################
@@ -2371,65 +2247,63 @@ sub _store_defcol {
 
 ###############################################################################
 #
-# _store_colinfo($firstcol, $lastcol, $width, $format, $hidden)
+# _store_colinfo($firstcol, $lastcol, $width, $format, $autofit)
 #
-# Write BIFF record COLINFO to define column widths
+# Write XML <Column> elements to define column widths.
 #
-# Note: The SDK says the record length is 0x0B but Excel writes a 0x0C
-# length record.
 #
 sub _store_colinfo {
 
     my $self     = shift;
-    my $record   = 0x007D;          # Record identifier
-    my $length   = 0x000B;          # Number of bytes to follow
 
-    my $colFirst = $_[0] || 0;      # First formatted column
-    my $colLast  = $_[1] || 0;      # Last formatted column
-    my $width    = $_[2] || 8.43;   # Col width in user units, 8.43 is default
-    my $coldx;                      # Col width in internal units
-    my $pixels;                     # Col width in pixels
+    # Extract only the columns that have been defined.
+    my @cols     = sort {$a <=> $b} keys %{$self->{_set_cols}};
+    return unless @cols;
 
-    # Excel rounds the column width to the nearest pixel. Therefore we first
-    # convert to pixels and then to the internal units. The pixel to users-units
-    # relationship is different for values less than 1.
-    #
-    if ($width < 1) {
-        $pixels = int($width *12);
+    my @attribs;
+    my $previous = -1;
+    my $span     = 0;
+
+    for my $col (@cols) {
+        if (not $span) {
+            my $width   = $self->{_set_cols}->{$col}->[0];
+            my $format  = $self->{_set_cols}->{$col}->[1];
+            my $hidden  = $self->{_set_cols}->{$col}->[2];
+            my $autofit = $self->{_set_cols}->{$col}->[3] || 0;
+
+            push @attribs, "ss:Index",         $col +1  if $col != $previous+1;
+            push @attribs, "ss:StyleID", "s" . $format  if $format;
+            push @attribs, "ss:Hidden",        $hidden  if $hidden;
+            push @attribs, "ss:AutoFitWidth",  $autofit;
+            push @attribs, "ss:Width",         $width   if $width;
+
+            # Note. "Overview of SpreadsheetML" states that the ss:Index
+            # attribute is implicit in a Column element directly following a
+            # Column element with an ss:Span attribute. However Excel doesn't
+            # comply. In order to test directly against Excel we follow suit
+            # and make ss:Index explicit. To get the implicit behaviour move
+            # the next line outside the for() loop.
+            $previous = $col;
+        }
+
+        # $previous = $col; # See note above.
+        local $^W = 0; # Ignore warnings about undefs in array ref comparison.
+
+        # Check if the same attributes are shared over consecutive columns.
+        if (exists $self->{_set_cols}->{$col +1}        and
+            join("|", @{$self->{_set_cols}->{$col   }}) eq
+            join("|", @{$self->{_set_cols}->{$col +1}}))
+        {
+            $span++;
+            next;
+        }
+
+        push @attribs, "ss:Span", $span if $span;
+        $self->_write_xml_element(3, 1, 0, 'Column', @attribs);
+
+        @attribs = ();
+        $span    = 0;
     }
-    else {
-        $pixels = int($width *7 ) +5;
-    }
-
-    $coldx = int($pixels *256/7);
-
-
-    my $ixfe;                       # XF index
-    my $grbit    = 0x0000;          # Option flags
-    my $reserved = 0x00;            # Reserved
-    my $format   = $_[3];           # Format object
-    my $hidden   = $_[4] || 0;      # Hidden flag
-    my $level    = $_[5] || 0;      # Outline level
-
-
-    # TODO Update for ExcelXML format
-
-
-    # Set the limits for the outline levels (0 <= x <= 7).
-    $level = 0 if $level < 0;
-    $level = 7 if $level > 7;
-
-
-    # Set the options flags.
-    # The collapsed flag 0x10 doesn't seem to be used to indicate that a col
-    # is collapsed. Instead it is used to indicate that the previous col is
-    # collapsed. The zero height flag, 0x20, is used to collapse a col.
-    #
-    $grbit |= 0x0001 if $hidden;
-    $grbit |= $level << 8;
-
-
-    # TODO Update for ExcelXML format
 }
 
 
@@ -3198,28 +3072,20 @@ sub _position_image {
 # _size_col($col)
 #
 # Convert the width of a cell from user's units to pixels. Excel rounds the
-# column width to the nearest pixel. If the width hasn't been set by the user
-# we use the default value. If the column is hidden we use a value of zero.
+# column width to the nearest pixel. Excel XML also scales the pixel value
+# by 0.75.
 #
 sub _size_col {
 
-    my $self = shift;
-    my $col  = $_[0];
+    my $self  = shift;
+    my $width = $_[0];
 
-    # Look up the cell value to see if it has been changed
-    if (exists $self->{_col_sizes}->{$col}) {
-        my $width = $self->{_col_sizes}->{$col};
-
-        # The relationship is different for user units less than 1.
-        if ($width < 1) {
-            return int($width *12);
-        }
-        else {
-            return int($width *7 ) +5;
-        }
+    # The relationship is different for user units less than 1.
+    if ($width < 1) {
+        return 0.75 * int($width *12);
     }
     else {
-        return 64;
+        return 0.75 * (int($width *7 ) +5);
     }
 }
 
@@ -3229,27 +3095,14 @@ sub _size_col {
 # _size_row($row)
 #
 # Convert the height of a cell from user's units to pixels. By interpolation
-# the relationship is: y = 4/3x. If the height hasn't been set by the user we
-# use the default value. If the row is hidden we use a value of zero. (Not
-# possible to hide row yet).
+# the relationship is: y = 4/3x. Excel XML also scales the pixel value by 0.75.
 #
 sub _size_row {
 
-    my $self = shift;
-    my $row  = $_[0];
+    my $self    = shift;
+    my $height  = $_[0];
 
-    # Look up the cell value to see if it has been changed
-    if (exists $self->{_row_sizes}->{$row}) {
-        if ($self->{_row_sizes}->{$row} == 0) {
-            return 0;
-        }
-        else {
-            return int (4/3 * $self->{_row_sizes}->{$row});
-        }
-    }
-    else {
-        return 17;
-    }
+    return 0.75 * int(4/3 *$height);
 }
 
 
@@ -3326,25 +3179,6 @@ sub _store_comment {
     my $self      = shift;
     if (@_ < 3) { return -1 }
 
-    my $record    = 0x001C;                 # Record identifier
-    my $length ;                            # Bytes to follow
-
-    my $row       = $_[0];                  # Zero indexed row
-    my $col       = $_[1];                  # Zero indexed column
-    my $str       = $_[2];
-    my $strlen    = $_[3];
-
-    # The length of the first record is the total length of the NOTE.
-    # Therefore, it can be greater than 2048.
-    #
-    if ($strlen > 2048) {
-        $length = 0x06 + 2048;
-    }
-    else{
-        $length = 0x06 + $strlen;
-    }
-
-
     # TODO Update for ExcelXML format
 
 }
@@ -3371,43 +3205,29 @@ sub _store_comment {
 #
 # _write_xml_table()
 #
-# Write the stored data into the Table element.
+# Write the stored data into the <Table> element.
 #
-# TODO note about data structure
+# TODO Add note about data structure
 #
 sub _write_xml_table {
 
-    my $self      = shift;
+    my $self = shift;
 
-    $self->_write_xml_start_tag(2, 1, 1, 'Table',
+    # Don't write <Table> element if it contains no data.
+    return unless $self->{_dim_changed};
+
+
+
+    $self->_write_xml_start_tag(2, 1, 0, 'Table',
                                          'ss:ExpandedColumnCount',
-                                          $self->{_dim_colmax},
-                                          'ss:ExpandedRowCount',
-                                          $self->{_dim_rowmax},
+                                          $self->{_dim_colmax} +1,
+                                         'ss:ExpandedRowCount',
+                                          $self->{_dim_rowmax} +1,
                                        );
+    $self->_store_colinfo();
 
-
-    # Iterate over the stored data
-
-    my $row_num = 0;
-
-    for my $row (@{$self->{_table}}) {
-        if ($row) {
-            $self->_write_xml_row($row_num);
-
-            my $col_num = 0;
-
-            for my $col (@{$row}) {
-                if ($col) {
-                    $self->_write_xml_cell($row_num, $col_num);
-                }
-
-                $col_num++;
-            }
-            $self->_write_xml_end_tag(3, 1, 0, 'Row');
-        }
-        $row_num++;
-    }
+    # Write stored <Row> and <Cell> data
+    $self->_write_xml_rows();
 
     $self->_write_xml_end_tag(2, 1, 0, 'Table');
 }
@@ -3415,22 +3235,76 @@ sub _write_xml_table {
 
 ###############################################################################
 #
-# _write_xml_row()
+# _write_xml_rows()
 #
-# Write a Row element start tag.
+# Write all <Row> elements.
 #
-sub _write_xml_row {
+sub _write_xml_rows {
 
-    my $self  = shift;
+    my $self     = shift;
 
-    my $row     = $_[0];
     my @attribs;
+    my $previous = -1;
+    my $span     = 0;
 
-    push @attribs, "ss:Index", $row +1 if $row != $self->{prev_row} +1;
+    for my $row (0 .. $self->{_dim_rowmax}) {
 
-    $self->_write_xml_start_tag(3, 1, 0, 'Row', @attribs);
+        next unless $self->{_set_rows}->{$row} or $self->{_table}->[$row];
 
-    $self->{prev_row} = $row;
+        if (not $span) {
+            my $height  = $self->{_set_rows}->{$row}->[0];
+            my $format  = $self->{_set_rows}->{$row}->[1];
+            my $hidden  = $self->{_set_rows}->{$row}->[2];
+            my $autofit = $self->{_set_rows}->{$row}->[3] || 0;
+
+            push @attribs, "ss:Index",         $row +1  if $row != $previous+1;
+            push @attribs, "ss:AutoFitHeight", $autofit if $height or $autofit;
+            push @attribs, "ss:Height",        $height  if $height;
+            push @attribs, "ss:Hidden",        $hidden  if $hidden;
+            push @attribs, "ss:StyleID",  "s" . $format if $format;
+
+            # See ss:Index note in _store_colinfo
+            $previous = $row;
+        }
+
+        # $previous = $row; # See ss:Index note in _store_colinfo
+        local $^W = 0; # Ignore warnings about undefs in array ref comparison.
+
+        # Check if the same attributes are shared over consecutive columns.
+        if (not    $self->{_table}->[$row   ]           and
+            not    $self->{_table}->[$row +1]           and
+            exists $self->{_set_rows}->{$row   }        and
+            exists $self->{_set_rows}->{$row +1}        and
+            join("|", @{$self->{_set_rows}->{$row   }}) eq
+            join("|", @{$self->{_set_rows}->{$row +1}}))
+        {
+            $span++;
+            next;
+        }
+
+        push @attribs, "ss:Span", $span if $span;
+
+        # Write <Row> with <Cell> data or formatted <Row> without <Cell> data.
+        #
+        if (my $row_ref = $self->{_table}->[$row]) {
+            $self->_write_xml_start_tag(3, 1, 0, 'Row', @attribs);
+
+            my $col = 0;
+
+            for my $col_ref (@$row_ref) {
+                $self->_write_xml_cell($row, $col) if $col_ref;
+                $col++;
+            }
+            $self->_write_xml_end_tag(3, 1, 0, 'Row');
+        }
+        else {
+            $self->_write_xml_element(3, 1, 0, 'Row', @attribs);
+        }
+
+
+        @attribs = ();
+        $span    = 0;
+    }
 }
 
 
@@ -3438,7 +3312,7 @@ sub _write_xml_row {
 #
 # _write_xml_cell()
 #
-# Write a Cell element start tag.
+# Write a <Cell> element start tag.
 #
 sub _write_xml_cell {
 

@@ -1,5 +1,18 @@
 Revision history for Perl module Spreadsheet::WriteExcelXML.
 
+
+0.04 July 1 2004
+
+    ! Added XML escape for "\n" and test. Used in set_text_wrap().
+      Thanks to Masaaki Hirose and Marc Rosenthal for reports.
+
+    + Enabled set_row() as per Spreadsheet::WriteExcel.
+
+    + Enabled set_column() as per Spreadsheet::WriteExcel.
+
+    + Added tests for set_row() and set_column().
+
+
 0.03 May 13 2004
 
     + Added write_date_time() to write dates in Excel XML's
@@ -10,6 +23,8 @@ Revision history for Perl module Spreadsheet::WriteExcelXML.
     + Added hyperlink.pl and date_time.pl examples.
 
     + Added web_component.pl example.
+
+    + Added tests for write_date_time().
 
 
 0.02 April 25 2004

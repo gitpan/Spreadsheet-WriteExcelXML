@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.03'; # The Saturday Boy and The Birthday Boy
+$VERSION = '0.04'; # somewhere i have never travelled
 
 
 
@@ -54,7 +54,7 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.03 of Spreadsheet::WriteExcelXML, released May 13, 2004.
+This document refers to version 0.04 of Spreadsheet::WriteExcelXML, released July 01, 2004.
 
 
 
@@ -115,11 +115,15 @@ However there are some features of the Excel binary format that aren't supported
 
 =item *
 
-Graphs
+Graphs.
 
 =item *
 
-Macros
+Macros.
+
+=item *
+
+Outlines and grouping. (supported by Spreadsheet::WriteExcel)
 
 =item *
 
@@ -443,9 +447,9 @@ The following methods are available through a new worksheet:
     set_first_sheet() *
     protect() *
     set_selection() *
-    set_row() *
-    set_column() *
-    outline_settings() *
+    set_row()
+    set_column()
+    outline_settings() ***
     freeze_panes() *
     thaw_panes() *
     merge_range() *
@@ -1137,9 +1141,7 @@ The default cell selections is (0, 0), 'A1'.
 
 
 
-=head2 set_row($row, $height, $format, $hidden, $level)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
+=head2 set_row($row, $height, $format, $hidden)
 
 This method can be used to change the default properties of a row. All parameters apart from C<$row> are optional.
 
@@ -1164,26 +1166,12 @@ The C<$hidden> parameter should be set to 1 if you wish to hide a row. This can 
     $worksheet->set_row(0, 20,    $format, 1);
     $worksheet->set_row(1, undef, undef,   1);
 
-The C<$level> parameter is used to set the outline level of the row. Outlines are described in L<OUTLINES AND GROUPING IN EXCEL>. Adjacent rows with the same outline level are grouped together into a single outline.
-
-The following example sets an outline level of 1 for rows 1 and 2 (zero-indexed):
-
-    $worksheet->set_row(1, undef, undef, 0, 1);
-    $worksheet->set_row(2, undef, undef, 0, 1);
-
-The C<$hidden> parameter can also be used to collapse outlined rows when used in conjunction with the C<$level> parameter.
-
-    $worksheet->set_row(1, undef, undef, 1, 1);
-    $worksheet->set_row(2, undef, undef, 1, 1);
-
-Excel allows up to 7 outline levels. Therefore the C<$level> parameter should be in the range C<0 E<lt>= $level E<lt>= 7>.
+B<Note:> Spreadsheet::WriteExcel supports another parameter in relation to L<OUTLINES AND GROUPING IN EXCEL>. This feature is not supported by Excel XML.
 
 
 
 
-=head2 set_column($first_col, $last_col, $width, $format, $hidden, $level)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
+=head2 set_column($first_col, $last_col, $width, $format, $hidden)
 
 This method can be used to change the default properties of a single column or a range of columns. All parameters apart from C<$first_col> and C<$last_col> are optional.
 
@@ -1196,7 +1184,7 @@ Examples:
     $worksheet->set_column('E:E', 20); # Column  E   width set to 20
     $worksheet->set_column('F:H', 30); # Columns F-H width set to 30
 
-The width corresponds to the column width value that is specified in Excel. It is approximately equal to the length of a string in the default font of Arial 10. Unfortunately, there is no way to specify "AutoFit" for a column in the Excel file format. This feature is only available at runtime from within Excel.
+The width corresponds to the column width value that is specified in Excel. It is approximately equal to the length of a string in the default font of Arial 10. It is possible to set "AutoFit" for a column in the ExcelXML file format, but it only applies to numbers and dates and not to strings.
 
 As usual the C<$format> parameter is optional, for additional information, see L<CELL FORMATTING>. If you wish to set the format without changing the width you can pass C<undef> as the width parameter:
 
@@ -1207,8 +1195,6 @@ The C<$format> parameter will be applied to any cells in the column that don't h
     $worksheet->set_column('A:A', undef, $format1); # Set format for col 1
     $worksheet->write('A1', "Hello");               # Defaults to $format1
     $worksheet->write('A2', "Hello", $format2);     # Keeps $format2
-
-If you wish to define a column format in this way you should call the method before any calls to C<write()>. If you call it afterwards it won't have any effect.
 
 A default row format takes precedence over a default column format
 
@@ -1222,24 +1208,14 @@ The C<$hidden> parameter should be set to 1 if you wish to hide a column. This c
     $worksheet->set_column('D:D', 20,    $format, 1);
     $worksheet->set_column('E:E', undef, undef,   1);
 
-The C<$level> parameter is used to set the outline level of the column. Outlines are described in L<OUTLINES AND GROUPING IN EXCEL>. Adjacent columns with the same outline level are grouped together into a single outline.
-
-The following example sets an outline level of 1 for columns B to G:
-
-    $worksheet->set_column('B:G', undef, undef, 0, 1);
-
-The C<$hidden> parameter can also be used to collapse outlined columns when used in conjunction with the C<$level> parameter.
-
-    $worksheet->set_column('B:G', undef, undef, 1, 1);
-
-Excel allows up to 7 outline levels. Therefore the C<$level> parameter should be in the range C<0 E<lt>= $level E<lt>= 7>.
+B<Note:> Spreadsheet::WriteExcel supports another parameter in relation to L<OUTLINES AND GROUPING IN EXCEL>. This feature is not supported by Excel XML.
 
 
 
 
 =head2 outline_settings($visible, $symbols_below, $symbols_right, $auto_style)
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
+B<Note:> Outlines and Grouping is not supported by Excel XML. See Spreadsheet::WriteExcel if you need this feature.
 
 The C<outline_settings()> method is used to control the appearance of outlines in Excel. Outlines are described in L<OUTLINES AND GROUPING IN EXCEL>.
 
@@ -2758,8 +2734,7 @@ However, this carries a performance overhead in Spreadsheet::WriteExcelXML due t
 
 =head1 OUTLINES AND GROUPING IN EXCEL
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
+B<Note:> Outlines and Grouping is not supported by Excel XML. See Spreadsheet::WriteExcel if you need this feature.
 
 
 Excel allows you to group rows or columns so that they can be hidden or displayed with a single mouse click. This feature is referred to as outlines.
@@ -2986,7 +2961,7 @@ For a general introduction to Excel's formulas and an explanation of the syntax 
 
 If your formula doesn't work in Spreadsheet::WriteExcelXML try the following:
 
-    1. Verify that the formula works in Excel (or Gnumeric or OpenOffice).
+    1. Verify that the formula works in Excel (or Gnumeric or OpenOffice.org).
     2. Ensure that it isn't on the Caveats list shown above.
     3. Ensure that cell references and formula names are in uppercase.
     4. Ensure that you are using ':' as the range operator, A1:A4.
@@ -3491,7 +3466,7 @@ This is a Perl interface to OLE file formats. In particular, the distro contains
 
 For other Perl-Excel modules try the following search: http://search.cpan.org/search?mode=module&query=excel
 
-If you wish to view Excel files on a UNIX/Linux platform check out the excellent Gnumeric spreadsheet application at http://www.gnome.org/projects/gnumeric/ or OpenOffice at http://www.openoffice.org/
+If you wish to view Excel files on a UNIX/Linux platform check out the excellent Gnumeric spreadsheet application at http://www.gnome.org/projects/gnumeric/ or OpenOffice.org at http://www.openoffice.org/
 
 If you wish to view Excel files on a Windows platform which doesn't have Excel installed you can use the free Microsoft Excel Viewer http://office.microsoft.com/downloads/2000/xlviewer.aspx
 
@@ -3550,24 +3525,12 @@ Spreadsheet::ParseExcel: http://search.cpan.org/search?dist=Spreadsheet-ParseExc
 
 John McNamara jmcnamara@cpan.org
 
+    your slightest look will easily unclose me
+    though i have closed myself as fingers,
+    you open always petal by petal myself as Spring opens
+    (touching skilfully,mysteriously)her first rose
 
-    I'll never forget the first day I met her
-    That September morning was clear and fresh
-    The way she spoke and laughed at my jokes
-    And the way she rubbed herself
-    Against the edge of my desk
-    She became a magic mystery to me
-    And we'd sit together in double
-    History twice a week
-    And some days we'd walk the same way home
-    And it's surprising how quick
-    A little rain can clear the streets
-    We dreamed of her and compared our dreams
-    But that was all that I ever tasted
-    She lied to me with her body you see
-    I lied to myself 'bout the chances I'd wasted
-
-        -- Billy Bragg
+        -- e.e. cummings
 
 
 

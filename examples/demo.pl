@@ -26,7 +26,7 @@ my $worksheet3 = $workbook->add_worksheet('And another');
 #
 # Write a general heading
 #
-$worksheet->set_column('A:B', 32);
+$worksheet->set_column('A:B', 36);
 my $heading  = $workbook->add_format(
                                         bold    => 1,
                                         color   => 'blue',

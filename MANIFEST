@@ -16,6 +16,8 @@ t/03_convert_formula.t
 t/11_date_time.t
 t/12_date_only.t
 t/13_date_seconds.t
+t/21_set_column.t
+t/22_set_row.t
 
 examples/README
 examples/bug_report.pl
