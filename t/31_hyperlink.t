@@ -4,7 +4,7 @@
 #
 # A test for Spreadsheet::WriteExcelXML.
 #
-# Tests the implicit/explicit ss:Index attribute of <Row> and <Cell> elements.
+# Tests hyperlinks.
 #
 # reverse('©'), July 2004, John McNamara, jmcnamara@cpan.org
 #

@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter);
 
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 ###############################################################################
 #
@@ -80,16 +80,10 @@ sub new {
     $self->{_margin_top}        = 1.00;
     $self->{_margin_bottom}     = 1.00;
 
-    $self->{_title_rowmin}      = undef;
-    $self->{_title_rowmax}      = undef;
-    $self->{_title_colmin}      = undef;
-    $self->{_title_colmax}      = undef;
-    $self->{_print_rowmin}      = undef;
-    $self->{_print_rowmax}      = undef;
-    $self->{_print_colmin}      = undef;
-    $self->{_print_colmax}      = undef;
+    $self->{_repeat_rows}       = '';
+    $self->{_repeat_cols}       = '';
 
-    $self->{_print_gridlines}   = 1;
+    $self->{_print_gridlines}   = 0;
     $self->{_screen_gridlines}  = 1;
     $self->{_print_headers}     = 0;
 
@@ -97,7 +91,7 @@ sub new {
     $self->{_black_white}       = 0;
     $self->{_draft_quality}     = 0;
     $self->{_print_comments}    = 0;
-    $self->{_page_start}        = 1;
+    $self->{_page_start}        = 0;
 
     $self->{_fit_page}          = 0;
     $self->{_fit_width}         = 0;
@@ -122,6 +116,8 @@ sub new {
     $self->{_outline_below}     = 1;
     $self->{_outline_right}     = 1;
     $self->{_outline_on}        = 1;
+
+    $self->{_names}             = {};
 
     $self->{_write_match}       = [];
 
@@ -150,15 +146,11 @@ sub new {
 #
 # _initialize()
 #
-# Open a tmp file to store the majority of the Worksheet data. If this fails,
-# for example due to write permissions, store the data in memory. This can be
-# slow for large files.
+# Placeholder.
 #
 sub _initialize {
 
     my $self = shift;
-
-    # TODO Update for ExcelXML format
 }
 
 
@@ -166,8 +158,7 @@ sub _initialize {
 #
 # _close()
 #
-# Add data to the beginning of the workbook (note the reverse order)
-# and to the end of the workbook.
+# Write the worksheet elements.
 #
 sub _close {
 
@@ -175,97 +166,24 @@ sub _close {
     my $sheetnames = shift;
     my $num_sheets = scalar @$sheetnames;
 
-    $self->_write_xml_start_tag(1, 1, 0, 'Worksheet', 'ss:Name', $self->{_name});
+    $self->_write_xml_start_tag(1, 1, 0, 'Worksheet',
+                                         'ss:Name',
+                                         $self->{_name});
 
-
+    # Write the Name elements such as print area and repeat rows.
+    $self->_write_names();
 
     # Write the Table element and the child Row, Cell and Data elements.
     $self->_write_xml_table();
 
+    # Write the worksheet page setup options.
+    $self->_write_worksheet_options();
 
-    ################################################
-    # Prepend in reverse order!!
-    #
-
-    # Prepend the sheet password
-    $self->_store_password();
-
-    # Prepend the sheet protection
-    $self->_store_protect();
-
-    # Prepend the page setup
-    $self->_store_setup();
-
-    # Prepend the bottom margin
-    $self->_store_margin_bottom();
-
-    # Prepend the top margin
-    $self->_store_margin_top();
-
-    # Prepend the right margin
-    $self->_store_margin_right();
-
-    # Prepend the left margin
-    $self->_store_margin_left();
-
-    # Prepend the page vertical centering
-    $self->_store_vcenter();
-
-    # Prepend the page horizontal centering
-    $self->_store_hcenter();
-
-    # Prepend the page footer
-    $self->_store_footer();
-
-    # Prepend the page header
-    $self->_store_header();
-
-    # Prepend the vertical page breaks
-    $self->_store_vbreak();
-
-    # Prepend the horizontal page breaks
-    $self->_store_hbreak();
-
-    # Prepend WSBOOL
-    $self->_store_wsbool();
-
-    # Prepend GRIDSET
-    $self->_store_gridset();
-
-    # Prepend GUTS
-    $self->_store_guts();
-
-    # Prepend PRINTGRIDLINES
-    $self->_store_print_gridlines();
-
-    # Prepend PRINTHEADERS
-    $self->_store_print_headers();
-
-    # Prepend EXTERNSHEET references
-    for (my $i = $num_sheets; $i > 0; $i--) {
-        my $sheetname = @{$sheetnames}[$i-1];
-        $self->_store_externsheet($sheetname);
-    }
-
-    # Prepend the EXTERNCOUNT of external references.
-    $self->_store_externcount($num_sheets);
-
-
-    #
-    # End of prepend. Read upwards from here.
-    ################################################
-
-    # Append
-    $self->_store_window2();
-    $self->_store_zoom();
-    $self->_store_panes(@{$self->{_panes}}) if @{$self->{_panes}};
-    $self->_store_selection(@{$self->{_selection}});
-
+    # Store horizontal and vertical pagebreaks.
+    $self->_store_pagebreaks();
 
     # Close Workbook tag. WriteExcel _store_eof().
     $self->_write_xml_end_tag(1, 1, 1, 'Worksheet');
-
-
 
 }
 
@@ -281,21 +199,6 @@ sub get_name {
     my $self    = shift;
 
     return $self->{_name};
-}
-
-
-###############################################################################
-#
-# get_data().
-#
-# Retrieves data from memory in one chunk, or from disk in $buffer
-# sized chunks.
-#
-sub get_data {
-
-    my $self   = shift;
-
-    # TODO Update for ExcelXML format
 }
 
 
@@ -358,8 +261,8 @@ sub protect {
     my $self = shift;
 
     $self->{_protect}   = 1;
-    $self->{_password}  = $self->_encode_password($_[0]) if defined $_[0];
 
+    # No password in XML format.
 }
 
 
@@ -698,15 +601,31 @@ sub set_margin_bottom {
 #
 # repeat_rows($first_row, $last_row)
 #
-# Set the rows to repeat at the top of each printed page. See also the
-# _store_name_xxxx() methods in Workbook.pm.
+# Set the rows to repeat at the top of each printed page. This is stored as
+# <NamedRange> element.
 #
 sub repeat_rows {
 
     my $self = shift;
 
-    $self->{_title_rowmin}  = $_[0];
-    $self->{_title_rowmax}  = $_[1] || $_[0]; # Second row is optional
+    my $row_min  = $_[0];
+    my $row_max  = $_[1] || $_[0]; # Second row is optional
+
+    my $area;
+
+    # Convert the zero-indexed rows to R1:R2 notation.
+    if ($row_min == $row_max) {
+        $area = 'R' . ($row_min +1);
+    }
+    else {
+        $area = 'R' . ($row_min +1) . ':' . 'R' . ($row_max +1);
+    }
+
+    # Build up the print area range "=Sheet2!R1:R2"
+    $area = "'" . $self->{_name} . "'!". $area;
+
+
+    $self->{_repeat_rows} =  $area;
 }
 
 
@@ -714,8 +633,8 @@ sub repeat_rows {
 #
 # repeat_columns($first_col, $last_col)
 #
-# Set the columns to repeat at the left hand side of each printed page.
-# See also the _store_names() methods in Workbook.pm.
+# Set the columns to repeat at the left hand side of each printed page. This is
+# stored as a <NamedRange> element.
 #
 sub repeat_columns {
 
@@ -730,8 +649,24 @@ sub repeat_columns {
         splice @_, 1, 1; # $row2
     }
 
-    $self->{_title_colmin}  = $_[0];
-    $self->{_title_colmax}  = $_[1] || $_[0]; # Second col is optional
+    my $col_min  = $_[0];
+    my $col_max  = $_[1] || $_[0]; # Second col is optional
+
+    my $area;
+
+    # Convert the zero-indexed cols to C1:C2 notation.
+    if ($col_min == $col_max) {
+        $area = 'C' . ($col_min +1);
+    }
+    else {
+        $area = 'C' . ($col_min +1) . ':' . 'C' . ($col_max +1);
+    }
+
+    # Build up the print area range "=Sheet2!C1:C2"
+    $area = "'" . $self->{_name} . "'!". $area;
+
+
+    $self->{_repeat_cols} =  $area;
 }
 
 
@@ -739,8 +674,8 @@ sub repeat_columns {
 #
 # print_area($first_row, $first_col, $last_row, $last_col)
 #
-# Set the area of each worksheet that will be printed. See also the
-# _store_names() methods in Workbook.pm.
+# Set the print area in the current worksheet. This is stored as a <NamedRange>
+# element.
 #
 sub print_area {
 
@@ -753,10 +688,48 @@ sub print_area {
 
     return if @_ != 4; # Require 4 parameters
 
-    $self->{_print_rowmin} = $_[0];
-    $self->{_print_colmin} = $_[1];
-    $self->{_print_rowmax} = $_[2];
-    $self->{_print_colmax} = $_[3];
+    my ($row1, $col1, $row2, $col2) = @_;
+
+    # Ignore max print area since this is the same as no print area for Excel.
+    if ($row1 == 0        and
+        $col1 == 0        and
+        $row2 == 2**16 -1 and
+        $col2 == 2**8  -1
+    ){return}
+
+    my $area;
+    my $range1 = '';
+    my $range2 = '';
+
+
+    # We need to handle some special cases that refer to rows or columns only.
+    if (   $row1 == 0 and $row2 == 2**16 -1) {
+       $range1 = 'C' . ($col1 +1);
+       $range2 = 'C' . ($col2 +1);
+    }
+    elsif ($col1 == 0 and $col2 == 2**8  -1) {
+       $range1 = 'R' . ($row1 +1);
+       $range2 = 'R' . ($row2 +1);
+    }
+    else {
+       $range1 = 'R' . ($row1 +1) . 'C' . ($col1 +1);
+       $range2 = 'R' . ($row2 +1) . 'C' . ($col2 +1);
+    }
+
+
+    # A repeated range is only written once.
+    if ($range1 eq $range2) {
+        $area = $range1;
+    }
+    else {
+        $area = $range1 . ':' . $range2;
+    }
+
+    # Build up the print area range "=Sheet2!R1C1:R2C1"
+    $area = "='" . $self->{_name} . "'!". $area;
+
+
+    $self->{_names}->{'Print_Area'} =  $area;
 }
 
 
@@ -765,12 +738,9 @@ sub print_area {
 # hide_gridlines()
 #
 # Set the option to hide gridlines on the screen and the printed page.
-# There are two ways of doing this in the Excel BIFF format: The first is by
-# setting the DspGrid field of the WINDOW2 record, this turns off the screen
-# and subsequently the print gridline. The second method is to via the
-# PRINTGRIDLINES and GRIDSET records, this turns off the printed gridlines
-# only. The first method is probably sufficient for most cases. The second
-# method is supported for backwards compatibility. Porters take note.
+#
+# This was mainly useful for Excel 5 where printed gridlines were on by
+# default.
 #
 sub hide_gridlines {
 
@@ -791,6 +761,20 @@ sub hide_gridlines {
         $self->{_print_gridlines}  = 0;
         $self->{_screen_gridlines} = 0;
     }
+}
+
+
+###############################################################################
+#
+# print_gridlines()
+#
+# Turn on the printed gridlines.
+#
+sub print_gridlines {
+
+    my $self   = shift;
+
+    $self->{_print_gridlines} = defined $_[0] ? $_[0] : 1;
 }
 
 
@@ -826,8 +810,8 @@ sub fit_to_pages {
     my $self = shift;
 
     $self->{_fit_page}      = 1;
-    $self->{_fit_width}     = $_[0] || 0;
-    $self->{_fit_height}    = $_[1] || 0;
+    $self->{_fit_width}     = $_[0] || 1;
+    $self->{_fit_height}    = $_[1] || 1;
 }
 
 
@@ -1290,45 +1274,6 @@ sub _sort_pagebreaks {
 
 ###############################################################################
 #
-# _encode_password($password)
-#
-# Based on the algorithm provided by Daniel Rentz of OpenOffice.org.
-#
-#
-sub _encode_password {
-
-    use integer;
-
-    my $self      = shift;
-    my $plaintext = $_[0];
-    my $password;
-    my $count;
-    my @chars;
-    my $i = 0;
-
-    $count = @chars = split //, $plaintext;
-
-    foreach my $char (@chars) {
-        my $low_15;
-        my $high_15;
-        $char     = ord($char) << ++$i;
-        $low_15   = $char & 0x7fff;
-        $high_15  = $char & 0x7fff << 15;
-        $high_15  = $high_15 >> 15;
-        $char     = $low_15 | $high_15;
-    }
-
-    $password  = 0x0000;
-    $password ^= $_ for @chars;
-    $password ^= $count;
-    $password ^= 0xCE4B;
-
-    return $password;
-}
-
-
-###############################################################################
-#
 # outline_settings($visible, $symbols_below, $symbols_right, $auto_style)
 #
 # This method sets the properties for outlining and grouping. The defaults
@@ -1758,226 +1703,6 @@ sub write_url_range {
 }
 
 
-
-###############################################################################
-#
-# _write_url_web($row1, $col1, $row2, $col2, $url, $string, $format)
-#
-# Used to write http, ftp and mailto hyperlinks.
-# The link type ($options) is 0x03 is the same as absolute dir ref without
-# sheet. However it is differentiated by the $unknown2 data stream.
-#
-# See also write_url() above for a general description and return values.
-#
-sub _write_url_web {
-
-    my $self    = shift;
-
-    my $record      = 0x01B8;                       # Record identifier
-    my $length      = 0x00000;                      # Bytes to follow
-
-    my $row1        = $_[0];                        # Start row
-    my $col1        = $_[1];                        # Start column
-    my $row2        = $_[2];                        # End row
-    my $col2        = $_[3];                        # End column
-    my $url         = $_[4];                        # URL string
-    my $str         = $_[5];                        # Alternative label
-    my $xf          = $_[6] || $self->{_url_format};# The cell format
-
-
-    # Write the visible label using the write_string() method.
-    $str            = $url unless defined $str;
-    my $str_error   = $self->write_string($row1, $col1, $str, $xf);
-    return $str_error if $str_error == -2;
-
-
-    # TODO Update for ExcelXML format
-
-    return $str_error;
-}
-
-
-###############################################################################
-#
-# _write_url_internal($row1, $col1, $row2, $col2, $url, $string, $format)
-#
-# Used to write internal reference hyperlinks such as "Sheet1!A1".
-#
-# See also write_url() above for a general description and return values.
-#
-sub _write_url_internal {
-
-    my $self    = shift;
-
-    my $record      = 0x01B8;                       # Record identifier
-    my $length      = 0x00000;                      # Bytes to follow
-
-    my $row1        = $_[0];                        # Start row
-    my $col1        = $_[1];                        # Start column
-    my $row2        = $_[2];                        # End row
-    my $col2        = $_[3];                        # End column
-    my $url         = $_[4];                        # URL string
-    my $str         = $_[5];                        # Alternative label
-    my $xf          = $_[6] || $self->{_url_format};# The cell format
-
-    # Strip URL type
-    $url            =~ s[^internal:][];
-
-
-    # Write the visible label
-    $str            = $url unless defined $str;
-    my $str_error   = $self->write_string($row1, $col1, $str, $xf);
-    return $str_error if $str_error == -2;
-
-
-    # TODO Update for ExcelXML format
-
-    return $str_error;
-}
-
-
-###############################################################################
-#
-# _write_url_external($row1, $col1, $row2, $col2, $url, $string, $format)
-#
-# Write links to external directory names such as 'c:\foo.xls',
-# c:\foo.xls#Sheet1!A1', '../../foo.xls'. and '../../foo.xls#Sheet1!A1'.
-#
-# Note: Excel writes some relative links with the $dir_long string. We ignore
-# these cases for the sake of simpler code.
-#
-# See also write_url() above for a general description and return values.
-#
-sub _write_url_external {
-
-    my $self    = shift;
-
-    # Network drives are different. We will handle them separately
-    # MS/Novell network drives and shares start with \\
-    return $self->_write_url_external_net(@_) if $_[4] =~ m[^external:\\\\];
-
-
-    my $record      = 0x01B8;                       # Record identifier
-    my $length      = 0x00000;                      # Bytes to follow
-
-    my $row1        = $_[0];                        # Start row
-    my $col1        = $_[1];                        # Start column
-    my $row2        = $_[2];                        # End row
-    my $col2        = $_[3];                        # End column
-    my $url         = $_[4];                        # URL string
-    my $str         = $_[5];                        # Alternative label
-    my $xf          = $_[6] || $self->{_url_format};# The cell format
-
-
-    # Strip URL type and change Unix dir separator to Dos style (if needed)
-    #
-    $url            =~ s[^external:][];
-    $url            =~ s[/][\\]g;
-
-
-    # Write the visible label
-    ($str = $url)   =~ s[\#][ - ] unless defined $str;
-    my $str_error   = $self->write_string($row1, $col1, $str, $xf);
-    return $str_error if $str_error == -2;
-
-
-    # Determine if the link is relative or absolute:
-    # Absolute if link starts with DOS drive specifier like C:
-    # Otherwise default to 0x00 for relative link.
-    #
-    my $absolute    = 0x00;
-       $absolute    = 0x02  if $url =~ m/^[A-Za-z]:/;
-
-
-    # Determine if the link contains a sheet reference and change some of the
-    # parameters accordingly.
-    # Split the dir name and sheet name (if it exists)
-    #
-    my ($dir_long , $sheet) = split /\#/, $url;
-    my $link_type           = 0x01 | $absolute;
-    my $sheet_len;
-
-    if (defined $sheet) {
-        $link_type |= 0x08;
-        $sheet_len  = pack("V", length($sheet) + 0x01);
-        $sheet      = join("\0", split('', $sheet));
-        $sheet     .= "\0\0\0";
-    }
-    else {
-        $sheet_len  = '';
-        $sheet      = '';
-    }
-
-    # TODO Update for ExcelXML format
-
-    return $str_error;
-}
-
-
-
-
-###############################################################################
-#
-# _write_url_external_net($row1, $col1, $row2, $col2, $url, $string, $format)
-#
-# Write links to external MS/Novell network drives and shares such as
-# '//NETWORK/share/foo.xls' and '//NETWORK/share/foo.xls#Sheet1!A1'.
-#
-# See also write_url() above for a general description and return values.
-#
-sub _write_url_external_net {
-
-    my $self    = shift;
-
-    my $record      = 0x01B8;                       # Record identifier
-    my $length      = 0x00000;                      # Bytes to follow
-
-    my $row1        = $_[0];                        # Start row
-    my $col1        = $_[1];                        # Start column
-    my $row2        = $_[2];                        # End row
-    my $col2        = $_[3];                        # End column
-    my $url         = $_[4];                        # URL string
-    my $str         = $_[5];                        # Alternative label
-    my $xf          = $_[6] || $self->{_url_format};# The cell format
-
-
-    # Strip URL type and change Unix dir separator to Dos style (if needed)
-    #
-    $url            =~ s[^external:][];
-    $url            =~ s[/][\\]g;
-
-
-    # Write the visible label
-    ($str = $url)   =~ s[\#][ - ] unless defined $str;
-    my $str_error   = $self->write_string($row1, $col1, $str, $xf);
-    return $str_error if $str_error == -2;
-
-
-    # Determine if the link contains a sheet reference and change some of the
-    # parameters accordingly.
-    # Split the dir name and sheet name (if it exists)
-    #
-    my ($dir_long , $sheet) = split /\#/, $url;
-    my $link_type           = 0x0103; # Always absolute
-    my $sheet_len;
-
-    if (defined $sheet) {
-        $link_type |= 0x08;
-        $sheet_len  = pack("V", length($sheet) + 0x01);
-        $sheet      = join("\0", split('', $sheet));
-        $sheet     .= "\0\0\0";
-    }
-    else {
-        $sheet_len   = '';
-        $sheet       = '';
-    }
-
-    # TODO Update for ExcelXML format
-
-    return $str_error;
-}
-
-
 ###############################################################################
 #
 # write_date_time ($row, $col, $string, $format)
@@ -2121,7 +1846,7 @@ sub convert_date_time {
     if (not $date_1904) {
         return      $seconds if $date eq '1899-12-31'; # Excel 1900 epoch
         return      $seconds if $date eq '1900-01-00'; # Excel 1900 epoch
-        return 60 + $seconds if $date eq '1900-02-29'; # Excel last leapday
+        return 60 + $seconds if $date eq '1900-02-29'; # Excel false leapday
     }
 
 
@@ -2162,6 +1887,23 @@ sub convert_date_time {
     $days++ if $date_1904 == 0 and $days > 59;
 
     return $days + $seconds;
+}
+
+###############################################################################
+#
+# insert_bitmap($row, $col, $filename, $x, $y, $scale_x, $scale_y)
+#
+# Insert a 24bit bitmap image in a worksheet. The main record required is
+# IMDATA but it must be proceeded by a OBJ record to define its position.
+#
+sub insert_bitmap {
+
+    my $self        = shift;
+
+    # Can't store images in ExcelXML
+
+    # TODO Update for ExcelXML format
+
 }
 
 
@@ -2511,206 +2253,148 @@ sub _store_panes {
 #
 # _store_setup()
 #
-# Store the page setup SETUP BIFF record.
+# Store the <WorksheetOptions> child element <PageSetup>.
 #
 sub _store_setup {
 
-    use integer;    # Avoid << shift bug in Perl 5.6.0 on HP-UX
-
     my $self         = shift;
-    my $record       = 0x00A1;                  # Record identifier
-    my $length       = 0x0022;                  # Number of bytes to follow
 
-    my $iPaperSize   = $self->{_paper_size};    # Paper size
-    my $iScale       = $self->{_print_scale};   # Print scaling factor
-    my $iPageStart   = 0x01;                    # Starting page number
-    my $iFitWidth    = $self->{_fit_width};     # Fit to number of pages wide
-    my $iFitHeight   = $self->{_fit_height};    # Fit to number of pages high
-    my $grbit        = 0x00;                    # Option flags
-    my $iRes         = 0x0258;                  # Print resolution
-    my $iVRes        = 0x0258;                  # Vertical print resolution
-    my $numHdr       = $self->{_margin_head};   # Header Margin
-    my $numFtr       = $self->{_margin_foot};   # Footer Margin
-    my $iCopies      = 0x01;                    # Number of copies
+    # Write the <Layout> child element.
+    my   @layout;
+    push @layout, 'x:Orientation', 'Landscape'  if $self->{_orientation} == 0;
+    push @layout, 'x:CenterHorizontal', 1       if $self->{_hcenter}     == 1;
+    push @layout, 'x:CenterVertical',   1       if $self->{_vcenter}     == 1;
+    push @layout, 'x:StartPageNumber',
+                  $self->{_start_page}          if $self->{_page_start}  >  0;
 
 
-    my $fLeftToRight = 0x0;                     # Print over then down
-    my $fLandscape   = $self->{_orientation};   # Page orientation
-    my $fNoPls       = 0x0;                     # Setup not read from printer
-    my $fNoColor     = 0x0;                     # Print black and white
-    my $fDraft       = 0x0;                     # Print draft quality
-    my $fNotes       = 0x0;                     # Print notes
-    my $fNoOrient    = 0x0;                     # Orientation not set
-    my $fUsePage     = 0x0;                     # Use custom starting page
+    # Write the <Header> child element.
+    my   @header;
+    push @header,   'x:Margin',
+                    $self->{_margin_head}   if $self->{_margin_head} != 0.5;
+    push @header,   'x:Data',
+                    $self->{_header}        if $self->{_header}     ne '';
 
 
-    $grbit           = $fLeftToRight;
-    $grbit          |= $fLandscape    << 1;
-    $grbit          |= $fNoPls        << 2;
-    $grbit          |= $fNoColor      << 3;
-    $grbit          |= $fDraft        << 4;
-    $grbit          |= $fNotes        << 5;
-    $grbit          |= $fNoOrient     << 6;
-    $grbit          |= $fUsePage      << 7;
+    # Write the <Footer> child element.
+    my   @footer;
+    push @footer,   'x:Margin',
+                    $self->{_margin_foot} if $self->{_margin_foot} != 0.5;
+    push @footer,   'x:Data',
+                    $self->{_footer}      if $self->{_footer}      ne '';
 
 
-    # TODO Update for ExcelXML format
+    # Write the <PageMargins> child element.
+    my   @margins;
+    push @margins, 'x:Bottom',
+                    $self->{_margin_bottom} if $self->{_margin_bottom} != 1.00;
+    push @margins, 'x:Left',
+                    $self->{_margin_left}   if $self->{_margin_left}   != 0.75;
+    push @margins, 'x:Right',
+                    $self->{_margin_right}  if $self->{_margin_right}  != 0.75;
+    push @margins, 'x:Top',
+                    $self->{_margin_top}    if $self->{_margin_top}    != 1.00;
 
-}
 
-###############################################################################
-#
-# _store_header()
-#
-# Store the header caption BIFF record.
-#
-sub _store_header {
 
-    my $self    = shift;
-
-    my $record  = 0x0014;               # Record identifier
-    my $length;                         # Bytes to follow
-
-    my $str     = $self->{_header};     # header string
-    my $cch     = length($str);         # Length of header string
-    $length     = 1 + $cch;
-
-    # TODO Update for ExcelXML format
+    $self->_write_xml_element(4, 1, 1, 'Layout', @layout) if @layout;
+    $self->_write_xml_element(4, 1, 1, 'Header', @header) if @header;
+    $self->_write_xml_element(4, 1, 1, 'Footer', @footer) if @footer;
+    $self->_write_xml_element(4, 1, 1, 'PageMargins', @margins) if @margins;
 }
 
 
 ###############################################################################
 #
-# _store_footer()
+# _store_print()
 #
-# Store the footer caption BIFF record.
+# Store the <WorksheetOptions> child element <Print>.
 #
-sub _store_footer {
+sub _store_print {
 
-    my $self    = shift;
+    my $self = shift;
 
-    my $record  = 0x0015;               # Record identifier
-    my $length;                         # Bytes to follow
 
-    my $str     = $self->{_footer};     # Footer string
-    my $cch     = length($str);         # Length of footer string
-    $length     = 1 + $cch;
+    if ($self->{_fit_width} > 1) {
+        $self->_write_xml_start_tag(4, 0, 0, 'FitWidth');
+        $self->_write_xml_content  ($self->{_fit_width});
+        $self->_write_xml_end_tag  (0, 1, 0, 'FitWidth');
+    }
 
-    # TODO Update for ExcelXML format
+    if ($self->{_fit_height} > 1) {
+        $self->_write_xml_start_tag(4, 0, 0, 'FitHeight');
+        $self->_write_xml_content  ($self->{_fit_height});
+        $self->_write_xml_end_tag  (0, 1, 0, 'FitHeight');
+    }
+
+
+    # Print scale won't work without this.
+    $self->_write_xml_element(4,1,0,'ValidPrinterInfo');
+
+
+    $self->_write_xml_element(4,1,0,'BlackAndWhite') if $self->{_black_white};
+    $self->_write_xml_element(4,1,0,'LeftToRight')   if $self->{_page_order};
+    $self->_write_xml_element(4,1,0,'DraftQuality')  if $self->{_draft_quality};
+
+
+    if ($self->{_paper_size}) {
+        $self->_write_xml_start_tag(4, 0, 0, 'PaperSizeIndex');
+        $self->_write_xml_content  ($self->{_paper_size});
+        $self->_write_xml_end_tag  (0, 1, 0, 'PaperSizeIndex');
+    }
+
+    if ($self->{_print_scale} != 100) {
+        $self->_write_xml_start_tag(4, 0, 0, 'Scale');
+        $self->_write_xml_content  ($self->{_print_scale});
+        $self->_write_xml_end_tag  (0, 1, 0, 'Scale');
+    }
+
+
+    $self->_write_xml_element(4,1,0,'Gridlines')   if $self->{_print_gridlines};
+    $self->_write_xml_element(4,1,0,'RowColHeadings')if $self->{_print_headers};
 }
 
 
 ###############################################################################
 #
-# _store_hcenter()
+# _write_names()
 #
-# Store the horizontal centering HCENTER BIFF record.
+# Write the <Worksheet> <Names> element.
 #
-sub _store_hcenter {
+sub _write_names {
 
-    my $self     = shift;
-
-    my $record   = 0x0083;              # Record identifier
-    my $length   = 0x0002;              # Bytes to follow
-
-    my $fHCenter = $self->{_hcenter};   # Horizontal centering
-
-    # TODO Update for ExcelXML format
-}
+    my $self = shift;
 
 
-###############################################################################
-#
-# _store_vcenter()
-#
-# Store the vertical centering VCENTER BIFF record.
-#
-sub _store_vcenter {
-
-    my $self     = shift;
-
-    my $record   = 0x0084;              # Record identifier
-    my $length   = 0x0002;              # Bytes to follow
-
-    my $fVCenter = $self->{_vcenter};   # Horizontal centering
-
-    # TODO Update for ExcelXML format
-}
+    if (not keys %{$self->{_names}} and
+        not $self->{_repeat_rows}   and
+        not $self->{_repeat_cols}
+    ){return}
 
 
-###############################################################################
-#
-# _store_margin_left()
-#
-# Store the LEFTMARGIN BIFF record.
-#
-sub _store_margin_left {
-
-    my $self    = shift;
-
-    my $record  = 0x0026;                   # Record identifier
-    my $length  = 0x0008;                   # Bytes to follow
-
-    my $margin  = $self->{_margin_left};    # Margin in inches
-
-    # TODO Update for ExcelXML format
-}
+    if ($self->{_repeat_rows} or $self->{_repeat_cols}) {
+        $self->{_names}->{Print_Titles} = '=' .
+                                          join ',',
+                                          grep {/\S/}
+                                          $self->{_repeat_cols},
+                                          $self->{_repeat_rows}
+    }
 
 
-###############################################################################
-#
-# _store_margin_right()
-#
-# Store the RIGHTMARGIN BIFF record.
-#
-sub _store_margin_right {
+    $self->_write_xml_start_tag(2, 1, 0, 'Names');
 
-    my $self    = shift;
+    # Sort the <NamedRange> elements lexically and case insensitively.
+    for my $key (sort {lc $a cmp lc $b} keys %{$self->{_names}}) {
+        $self->_write_xml_element(3, 1, 0, 'NamedRange',
+                                           'ss:Name',
+                                            $key,
+                                           'ss:RefersTo',
+                                            $self->{_names}->{$key});
 
-    my $record  = 0x0027;                   # Record identifier
-    my $length  = 0x0008;                   # Bytes to follow
+    }
 
-    my $margin  = $self->{_margin_right};   # Margin in inches
+    $self->_write_xml_end_tag  (2, 1, 0, 'Names');
 
-    # TODO Update for ExcelXML format
-}
-
-
-###############################################################################
-#
-# _store_margin_top()
-#
-# Store the TOPMARGIN BIFF record.
-#
-sub _store_margin_top {
-
-    my $self    = shift;
-
-    my $record  = 0x0028;                   # Record identifier
-    my $length  = 0x0008;                   # Bytes to follow
-
-    my $margin  = $self->{_margin_top};     # Margin in inches
-
-    # TODO Update for ExcelXML format
-}
-
-
-###############################################################################
-#
-# _store_margin_bottom()
-#
-# Store the BOTTOMMARGIN BIFF record.
-#
-sub _store_margin_bottom {
-
-    my $self    = shift;
-
-    my $record  = 0x0029;                   # Record identifier
-    my $length  = 0x0008;                   # Bytes to follow
-
-    my $margin  = $self->{_margin_bottom};  # Margin in inches
-
-    # TODO Update for ExcelXML format
 }
 
 
@@ -2718,7 +2402,7 @@ sub _store_margin_bottom {
 #
 # merge_range($first_row, $first_col, $last_row, $last_col, $string, $format)
 #
-# This is a wrapper to ensure correct use of the merge_cells method, i.e., write
+# This is a wrapper to ensure correct use of the merge_cells method, i.e. write
 # the first cell of the range, write the formatted blank cells in the range and
 # then call the merge_cells record. Failing to do the steps in this order will
 # cause Excel 97 to crash.
@@ -2766,189 +2450,59 @@ sub merge_range {
 
 ###############################################################################
 #
-# _store_print_headers()
+# _store_pagebreaks()
 #
-# Write the PRINTHEADERS BIFF record.
+# Store horizontal and vertical pagebreaks.
 #
-sub _store_print_headers {
+sub _store_pagebreaks {
 
-    my $self        = shift;
+    my $self = shift;
 
-    my $record      = 0x002a;                   # Record identifier
-    my $length      = 0x0002;                   # Bytes to follow
+    return if  not @{$self->{_hbreaks}}
+           and not @{$self->{_vbreaks}} ;
 
-    my $fPrintRwCol = $self->{_print_headers};  # Boolean flag
-
-    # TODO Update for ExcelXML format
-}
-
-
-###############################################################################
-#
-# _store_print_gridlines()
-#
-# Write the PRINTGRIDLINES BIFF record. Must be used in conjunction with the
-# GRIDSET record.
-#
-sub _store_print_gridlines {
-
-    my $self        = shift;
-
-    my $record      = 0x002b;                    # Record identifier
-    my $length      = 0x0002;                    # Bytes to follow
-
-    my $fPrintGrid  = $self->{_print_gridlines}; # Boolean flag
-
-    # TODO Update for ExcelXML format
-}
+    $self->_write_xml_start_tag(2, 1, 0, 'PageBreaks',
+                                         'xmlns',
+                                         'urn:schemas-microsoft-com:' .
+                                         'office:excel');
 
 
-###############################################################################
-#
-# _store_gridset()
-#
-# Write the GRIDSET BIFF record. Must be used in conjunction with the
-# PRINTGRIDLINES record.
-#
-sub _store_gridset {
+    if (@{$self->{_vbreaks}}) {
+        my @breaks  = $self->_sort_pagebreaks(@{$self->{_vbreaks}});
 
-    my $self        = shift;
+        $self->_write_xml_start_tag(3, 1, 0, 'ColBreaks');
 
-    my $record      = 0x0082;                        # Record identifier
-    my $length      = 0x0002;                        # Bytes to follow
+        for my $break (@breaks) {
+            $self->_write_xml_start_tag(4, 0, 0, 'ColBreak');
+            $self->_write_xml_start_tag(0, 0, 0, 'Column'  );
+            $self->_write_xml_content  ($break             );
+            $self->_write_xml_end_tag  (0, 0, 0, 'Column'  );
+            $self->_write_xml_end_tag  (0, 1, 0, 'ColBreak');
+        }
 
-    my $fGridSet    = not $self->{_print_gridlines}; # Boolean flag
+        $self->_write_xml_end_tag(3, 1, 0, 'ColBreaks');
 
-    # TODO Update for ExcelXML format
-
-}
-
-
-###############################################################################
-#
-# _store_guts()
-#
-# Write the GUTS BIFF record. This is used to configure the gutter margins
-# where Excel outline symbols are displayed. The visibility of the gutters is
-# controlled by a flag in WSBOOL. See also _store_wsbool().
-#
-# We are all in the gutter but some of us are looking at the stars.
-#
-sub _store_guts {
-
-    my $self        = shift;
-
-    my $record      = 0x0080;   # Record identifier
-    my $length      = 0x0008;   # Bytes to follow
-
-    my $dxRwGut     = 0x0000;   # Size of row gutter
-    my $dxColGut    = 0x0000;   # Size of col gutter
-
-    my $row_level   = $self->{_outline_row_level};
-    my $col_level   = 0;
-
-
-    # Calculate the maximum column outline level. The equivalent calculation
-    # for the row outline level is carried out in set_row().
-    #
-    foreach my $colinfo (@{$self->{_colinfo}}) {
-        # Skip cols without outline level info.
-        next if @{$colinfo} < 6;
-        $col_level = @{$colinfo}[5] if @{$colinfo}[5] > $col_level;
     }
 
+    if (@{$self->{_hbreaks}}) {
+        my @breaks  = $self->_sort_pagebreaks(@{$self->{_hbreaks}});
 
-    # Set the limits for the outline levels (0 <= x <= 7).
-    $col_level = 0 if $col_level < 0;
-    $col_level = 7 if $col_level > 7;
+        $self->_write_xml_start_tag(3, 1, 0, 'RowBreaks');
 
+        for my $break (@breaks) {
+            $self->_write_xml_start_tag(4, 0, 0, 'RowBreak');
+            $self->_write_xml_start_tag(0, 0, 0, 'Row'     );
+            $self->_write_xml_content  ($break             );
+            $self->_write_xml_end_tag  (0, 0, 0, 'Row'     );
+            $self->_write_xml_end_tag  (0, 1, 0, 'RowBreak');
+        }
 
-    # The displayed level is one greater than the max outline levels
-    $row_level++ if $row_level > 0;
-    $col_level++ if $col_level > 0;
+        $self->_write_xml_end_tag(3, 1, 0, 'RowBreaks');
+    }
 
-    # TODO Update for ExcelXML format
-
+    $self->_write_xml_end_tag(2, 1, 0, 'PageBreaks');
 }
 
-
-###############################################################################
-#
-# _store_wsbool()
-#
-# Write the WSBOOL BIFF record, mainly for fit-to-page. Used in conjunction
-# with the SETUP record.
-#
-sub _store_wsbool {
-
-    my $self        = shift;
-
-    my $record      = 0x0081;   # Record identifier
-    my $length      = 0x0002;   # Bytes to follow
-
-    my $grbit       = 0x0000;   # Option flags
-
-    # Set the option flags
-    $grbit |= 0x0001;                            # Auto page breaks visible
-    $grbit |= 0x0020 if $self->{_outline_style}; # Auto outline styles
-    $grbit |= 0x0040 if $self->{_outline_below}; # Outline summary below
-    $grbit |= 0x0080 if $self->{_outline_right}; # Outline summary right
-    $grbit |= 0x0100 if $self->{_fit_page};      # Page setup fit to page
-    $grbit |= 0x0400 if $self->{_outline_on};    # Outline symbols displayed
-
-
-    # TODO Update for ExcelXML format
-}
-
-
-###############################################################################
-#
-# _store_hbreak()
-#
-# Write the HORIZONTALPAGEBREAKS BIFF record.
-#
-sub _store_hbreak {
-
-    my $self    = shift;
-
-    # Return if the user hasn't specified pagebreaks
-    return unless @{$self->{_hbreaks}};
-
-    # Sort and filter array of page breaks
-    my @breaks  = $self->_sort_pagebreaks(@{$self->{_hbreaks}});
-
-    my $record  = 0x001b;               # Record identifier
-    my $cbrk    = scalar @breaks;       # Number of page breaks
-    my $length  = ($cbrk + 1) * 2;      # Bytes to follow
-
-
-    # TODO Update for ExcelXML format
-}
-
-
-###############################################################################
-#
-# _store_vbreak()
-#
-# Write the VERTICALPAGEBREAKS BIFF record.
-#
-sub _store_vbreak {
-
-    my $self    = shift;
-
-    # Return if the user hasn't specified pagebreaks
-    return unless @{$self->{_vbreaks}};
-
-    # Sort and filter array of page breaks
-    my @breaks  = $self->_sort_pagebreaks(@{$self->{_vbreaks}});
-
-    my $record  = 0x001a;               # Record identifier
-    my $cbrk    = scalar @breaks;       # Number of page breaks
-    my $length  = ($cbrk + 1) * 2;      # Bytes to follow
-
-
-    # TODO Update for ExcelXML format
-}
 
 
 ###############################################################################
@@ -2972,96 +2526,6 @@ sub _store_protect {
     # TODO Update for ExcelXML format
 }
 
-
-###############################################################################
-#
-# _store_password()
-#
-# Write the worksheet PASSWORD record.
-#
-sub _store_password {
-
-    my $self        = shift;
-
-    # Can't store passwords in ExcelXML
-
-    # TODO Update for ExcelXML format
-}
-
-
-###############################################################################
-#
-# insert_bitmap($row, $col, $filename, $x, $y, $scale_x, $scale_y)
-#
-# Insert a 24bit bitmap image in a worksheet. The main record required is
-# IMDATA but it must be proceeded by a OBJ record to define its position.
-#
-sub insert_bitmap {
-
-    my $self        = shift;
-
-    # Can't store images in ExcelXML
-
-    # TODO Update for ExcelXML format
-
-}
-
-
-###############################################################################
-#
-#  _position_image()
-#
-# Calculate the vertices that define the position of the image as required by
-# the OBJ record.
-#
-#         +------------+------------+
-#         |     A      |      B     |
-#   +-----+------------+------------+
-#   |     |(x1,y1)     |            |
-#   |  1  |(A1)._______|______      |
-#   |     |    |              |     |
-#   |     |    |              |     |
-#   +-----+----|    BITMAP    |-----+
-#   |     |    |              |     |
-#   |  2  |    |______________.     |
-#   |     |            |        (B2)|
-#   |     |            |     (x2,y2)|
-#   +---- +------------+------------+
-#
-# Example of a bitmap that covers some of the area from cell A1 to cell B2.
-#
-# Based on the width and height of the bitmap we need to calculate 8 vars:
-#     $col_start, $row_start, $col_end, $row_end, $x1, $y1, $x2, $y2.
-# The width and height of the cells are also variable and have to be taken into
-# account.
-# The values of $col_start and $row_start are passed in from the calling
-# function. The values of $col_end and $row_end are calculated by subtracting
-# the width and height of the bitmap from the width and height of the
-# underlying cells.
-# The vertices are expressed as a percentage of the underlying cell width as
-# follows (rhs values are in pixels):
-#
-#       x1 = X / W *1024
-#       y1 = Y / H *256
-#       x2 = (X-1) / W *1024
-#       y2 = (Y-1) / H *256
-#
-#       Where:  X is distance from the left side of the underlying cell
-#               Y is distance from the top of the underlying cell
-#               W is the width of the cell
-#               H is the height of the cell
-#
-# Note: the SDK incorrectly states that the height should be expressed as a
-# percentage of 1024.
-#
-sub _position_image {
-
-    my $self = shift;
-
-    # Can't store images in ExcelXML
-
-    # TODO Update for ExcelXML format
-}
 
 
 ###############################################################################
@@ -3100,45 +2564,6 @@ sub _size_row {
     my $height  = $_[0];
 
     return 0.75 * int(4/3 *$height);
-}
-
-
-###############################################################################
-#
-# _store_obj_picture(   $col_start, $x1,
-#                       $row_start, $y1,
-#                       $col_end,   $x2,
-#                       $row_end,   $y2 )
-#
-# Store the OBJ record that precedes an IMDATA record. This could be generalise
-# to support other Excel objects.
-#
-sub _store_obj_picture {
-
-    my $self        = shift;
-
-    # Can't store images in ExcelXML
-
-    # TODO Update for ExcelXML format
-}
-
-
-###############################################################################
-#
-# _process_bitmap()
-#
-# Convert a 24 bit bitmap into the modified internal format used by Windows.
-# This is described in BITMAPCOREHEADER and BITMAPCOREINFO structures in the
-# MSDN library.
-#
-sub _process_bitmap {
-
-    my $self   = shift;
-
-    # Can't store images in ExcelXML
-
-    # TODO Update for ExcelXML format
-
 }
 
 
@@ -3515,7 +2940,7 @@ sub _convert_formula {
 
 
     # Replace valid A1 cell references with R1C1 references. Cell ranges such
-    # as B5::G10 are replaced in two goes.
+    # as B5:G10 are replaced in two passes.
     # The negative look-behind is to prevent false matches such as =LOG10(G10)
     #
     $formula =~ s{(?<![A-Z])(\$?[A-I]?[A-Z]\$?\d+)}
@@ -3705,6 +3130,126 @@ sub _col_range_to_R1C1 {
     if ($col1 eq $col2) {return $col1        }
     else                {return "$col1:$col2"}
 }
+
+
+
+###############################################################################
+#
+# _write_worksheet_options()
+#
+# Write the <WorksheetOptions> element if the worksheet options have changed.
+#
+sub _write_worksheet_options {
+
+    my $self = shift;
+
+    my ($options_changed, $print_changed, $setup_changed) =
+       $self->_options_changed();
+
+    return unless $options_changed;
+
+    $self->_write_xml_start_tag(2, 1, 0, 'WorksheetOptions',
+                                         'xmlns',
+                                         'urn:schemas-microsoft-com:' .
+                                         'office:excel');
+
+
+    if ($setup_changed) {
+        $self->_write_xml_start_tag(3, 1, 0, 'PageSetup');
+        $self->_store_setup();
+        $self->_write_xml_end_tag  (3, 1, 0, 'PageSetup');
+    }
+
+
+    $self->_write_xml_element(3,1,0,'FitToPage') if $self->{_fit_page};
+
+
+    if ($print_changed) {
+        $self->_write_xml_start_tag(3, 1, 0, 'Print');
+        $self->_store_print();
+        $self->_write_xml_end_tag  (3, 1, 0, 'Print');
+    }
+
+
+
+    $self->_write_xml_end_tag(2, 1, 0, 'WorksheetOptions');
+}
+
+
+
+###############################################################################
+#
+# _options_changed()
+#
+# Check to see if any of the worksheet options have changed.
+#
+sub _options_changed {
+
+    my $self = shift;
+
+    my $options_changed = 0;
+    my $print_changed   = 0;
+    my $setup_changed   = 0;
+
+
+    if (
+        $self->{_orientation}       == 0    or
+        $self->{_hcenter}           == 1    or
+        $self->{_vcenter}           == 1    or
+        $self->{_header}            ne ''   or
+        $self->{_footer}            ne ''   or
+        $self->{_margin_head}       != 0.50 or
+        $self->{_margin_foot}       != 0.50 or
+        $self->{_margin_left}       != 0.75 or
+        $self->{_margin_right}      != 0.75 or
+        $self->{_margin_top}        != 1.00 or
+        $self->{_margin_bottom}     != 1.00
+       )
+    {
+        $setup_changed = 1;
+    }
+
+
+    # Special case for 1x1 page fit.
+    if ($self->{_fit_width}  == 1 and $self->{_fit_height} == 1) {
+        $options_changed     = 1;
+        $self->{_fit_width}  = 0;
+        $self->{_fit_height} = 0;
+    }
+
+
+    if (
+        $self->{_fit_width}          > 1    or
+        $self->{_fit_height}         > 1    or
+        $self->{_page_order}        == 1    or
+        $self->{_black_white}       == 1    or
+        $self->{_draft_quality}     == 1    or
+        $self->{_print_comments}    == 1    or
+        $self->{_paper_size}        != 0    or
+        $self->{_print_scale}       != 100  or
+        $self->{_print_gridlines}   == 1    or
+        $self->{_print_headers}     == 1    or
+        @{$self->{_hbreaks}}         > 0    or
+        @{$self->{_vbreaks}}         > 0
+       )
+    {
+        $print_changed = 1;
+    }
+
+
+    if (
+        $print_changed or
+        $setup_changed
+       )
+    {
+        $options_changed = 1;
+    }
+
+
+    return ($options_changed, $print_changed, $setup_changed);
+}
+
+
 
 
 1;

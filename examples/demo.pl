@@ -27,7 +27,7 @@ my $bold       = $workbook->add_format(bold => 1);
 #
 # Write a general heading
 #
-$worksheet->set_column('A:A', 36, $bold);
+$worksheet->set_column('A:A', 48, $bold);
 $worksheet->set_column('B:B', 20       );
 $worksheet->set_row   (0,     40       );
 

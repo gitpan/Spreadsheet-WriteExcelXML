@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.07'; # AR101
+$VERSION = '0.08'; # Resigned to resignation.
 
 
 
@@ -54,7 +54,7 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.07 of Spreadsheet::WriteExcelXML, released November 11, 2004.
+This document refers to version 0.08 of Spreadsheet::WriteExcelXML, released December 1, 2004.
 
 
 
@@ -1483,25 +1483,23 @@ Page set-up methods affect the way that a worksheet looks when it is printed. Th
 
 The following methods are available for page set-up:
 
-    set_landscape() *
-    set_portrait() *
-    set_paper() *
-    center_horizontally() *
-    center_vertically() *
-    set_margins() *
-    set_header() *
-    set_footer() *
-    repeat_rows() *
-    repeat_columns() *
-    hide_gridlines() *
-    print_row_col_headers() *
-    print_area() *
-    fit_to_pages() *
-    set_print_scale() *
-    set_h_pagebreaks() *
-    set_v_pagebreaks() *
-
-    *   Not yet supported. See Spreadsheet::WriteExcel.
+    set_landscape()
+    set_portrait()
+    set_paper()
+    center_horizontally()
+    center_vertically()
+    set_margins()
+    set_header()
+    set_footer()
+    repeat_rows()
+    repeat_columns()
+    hide_gridlines()
+    print_row_col_headers()
+    print_area()
+    fit_to_pages()
+    set_print_scale()
+    set_h_pagebreaks()
+    set_v_pagebreaks()
 
 A common requirement when working with Spreadsheet::WriteExcelXML is to apply the same page set-up features to all of the worksheets in a workbook. To do this you can use the C<sheets()> method of the C<workbook> class to access the array of worksheets in a workbook:
 
@@ -1514,9 +1512,6 @@ A common requirement when working with Spreadsheet::WriteExcelXML is to apply th
 
 =head2 set_landscape()
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
 This method is used to set the orientation of a worksheet's printed page to landscape:
 
     $worksheet->set_landscape(); # Landscape mode
@@ -1526,9 +1521,6 @@ This method is used to set the orientation of a worksheet's printed page to land
 
 =head2 set_portrait()
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
 This method is used to set the orientation of a worksheet's printed page to portrait. The default worksheet orientation is portrait, so you won't generally need to call this method.
 
     $worksheet->set_portrait(); # Portrait mode
@@ -1536,9 +1528,6 @@ This method is used to set the orientation of a worksheet's printed page to port
 
 
 =head2 set_paper($index)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 
 This method is used to set the paper format for the printed output of a worksheet. The following paper styles are available:
 
@@ -1600,9 +1589,6 @@ If you do not specify a paper type the worksheet will print using the printer's 
 
 =head2 center_horizontally()
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
 Center the worksheet data horizontally between the margins on the printed page:
 
     $worksheet->center_horizontally();
@@ -1612,9 +1598,6 @@ Center the worksheet data horizontally between the margins on the printed page:
 
 =head2 center_vertically()
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
 Center the worksheet data vertically between the margins on the printed page:
 
     $worksheet->center_vertically();
@@ -1623,9 +1606,6 @@ Center the worksheet data vertically between the margins on the printed page:
 
 
 =head2 set_margins($inches)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 
 There are several methods available for setting the worksheet margins on the printed page:
 
@@ -1642,9 +1622,6 @@ All of these methods take a distance in inches as a parameter. Note: 1 inch = 25
 
 
 =head2 set_header($string, $margin)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 
 Headers and footers are generated using a C<$string> which is a combination of plain text and control characters. The C<$margin> parameter is optional.
 
@@ -1778,18 +1755,12 @@ See, also the C<headers.pl> program in the C<examples> directory of the distribu
 
 =head2 set_footer()
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
 The syntax of the C<set_footer()> method is the same as C<set_header()>,  see above.
 
 
 
 
 =head2 repeat_rows($first_row, $last_row)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 
 Set the number of rows to repeat at the top of each printed page.
 
@@ -1803,9 +1774,6 @@ For large Excel documents it is often desirable to have the first row or rows of
 
 =head2 repeat_columns($first_col, $last_col)
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
 Set the columns to repeat at the left hand side of each printed page.
 
 For large Excel documents it is often desirable to have the first column or columns of the worksheet print out at the left hand side of each page. This can be achieved by using the C<repeat_columns()> method. The parameters C<$first_column> and C<$last_column> are zero based. The C<$last_column> parameter is optional if you only wish to specify one column. You can also specify the columns using A1 column notation, see the note about L<Cell notation>.
@@ -1817,13 +1785,21 @@ For large Excel documents it is often desirable to have the first column or colu
 
 
 
+=head2 print_gridlines()
+
+Turn on printed gridlines. These are off by default in the Excel XML format. *
+
+    $worksheet->print_gridlines();
+
+
+* They are also off by default in the Excel97+ versions but Spreadsheet::WriteExcel turns them on for backward compatibility reasons.
+
+
+
 
 =head2 hide_gridlines($option)
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
-This method is used to hide the gridlines on the screen and printed page. Gridlines are the lines that divide the cells on a worksheet. Screen and printed gridlines are turned on by default in an Excel worksheet. If you have defined your own cell borders you may wish to hide the default gridlines.
+This method is used to hide the gridlines on the screen and printed page. Gridlines are the lines that divide the cells on a worksheet. If you have defined your own cell borders you may wish to hide the default gridlines.
 
     $worksheet->hide_gridlines();
 
@@ -1839,9 +1815,6 @@ If you don't supply an argument or use C<undef> the default option is 1, i.e. on
 
 
 =head2 print_row_col_headers()
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 
 Set the option to print the row and column headers on the printed page.
 
@@ -1867,9 +1840,6 @@ Do not confuse these headers with page headers as described in the C<set_header(
 
 =head2 print_area($first_row, $first_col, $last_row, $last_col)
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
 This method is used to specify the area of the worksheet that will be printed. All four parameters must be specified. You can also use A1 notation, see the note about L<Cell notation>.
 
 
@@ -1880,9 +1850,6 @@ This method is used to specify the area of the worksheet that will be printed. A
 
 
 =head2 fit_to_pages($width, $height)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 
 The C<fit_to_pages()> method is used to fit the printed area to a specific number of pages both vertically and horizontally. If the printed area exceeds the specified number of pages it will be scaled down to fit. This guarantees that the printed area will always appear on the specified number of pages even if the page size or margins change.
 
@@ -1907,9 +1874,6 @@ Note that C<fit_to_pages()> will override any manual page breaks that are define
 
 =head2 set_print_scale($scale)
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
-
 Set the scale factor of the printed page. Scale factors in the range C<10 E<lt>= $scale E<lt>= 400> are valid:
 
     $worksheet1->set_print_scale(50);
@@ -1925,9 +1889,6 @@ Note also that although it is valid to use both C<fit_to_pages()> and C<set_prin
 
 
 =head2 set_h_pagebreaks(@breaks)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 
 Add horizontal page breaks to a worksheet. A page break causes all the data that follows it to be printed on the next page. Horizontal page breaks act between rows. To create a page break between rows 20 and 21 you must specify the break at row 21. However in zero index notation this is actually row 20. So you can pretend for a small while that you are using 1 index notation:
 
@@ -1946,9 +1907,6 @@ There is a silent limitation of about 1000 horizontal page breaks per worksheet 
 
 
 =head2 set_v_pagebreaks(@breaks)
-
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 
 Add vertical page breaks to a worksheet. A page break causes all the data that follows it to be printed on the next page. Vertical page breaks act between columns. To create a page break between columns 20 and 21 you must specify the break at column 21. However in zero index notation this is actually column 20. So you can pretend for a small while that you are using 1 index notation:
 
@@ -3733,19 +3691,13 @@ Spreadsheet::ParseExcel: http://search.cpan.org/search?dist=Spreadsheet-ParseExc
 
 John McNamara jmcnamara@cpan.org
 
-    so much depends
-    upon
+    This shaking keeps me steady. I should know.
+    What falls away is always. And is near.
+    I wake to sleep, and take my waking slow.
+    I learn by going where I have to go.
 
-    a red wheel
-    barrow
+        -- Theodore Roethke
 
-    glazed with rain
-    water
-
-    beside the white
-    chickens.
-
-    -- William Carlos Williams
 
 
 =head1 PATENT LICENSE

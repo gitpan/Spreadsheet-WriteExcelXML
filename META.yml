@@ -1,5 +1,5 @@
 name:         Spreadsheet-WriteExcelXML
-version:      0.07
+version:      0.08
 version_from: lib/Spreadsheet/WriteExcelXML.pm
 installdirs:  site
 requires:

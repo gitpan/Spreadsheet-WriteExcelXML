@@ -86,7 +86,7 @@ for ($excel_xml_data) {
 
 
 
-$clsid = "CLSID:0002E551-0000-0000-C000-000000000046" if $excel_version == 2002;
+$clsid = "CLSID:0002E541-0000-0000-C000-000000000046" if $excel_version == 2002;
 $clsid = "CLSID:0002E559-0000-0000-C000-000000000046" if $excel_version == 2003;
 
 

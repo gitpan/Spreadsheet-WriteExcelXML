@@ -4,7 +4,7 @@
 #
 # A test for Spreadsheet::WriteExcelXML.
 #
-# Tests date and time handling. These test check time handling.
+# Tests date and time second handling.
 #
 # reverse('©'), May 2004, John McNamara, jmcnamara@cpan.org
 #

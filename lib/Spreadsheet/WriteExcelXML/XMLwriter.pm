@@ -210,7 +210,7 @@ sub _write_xml_end_tag {
 # Creates a single open and closed XML element. Prints to the current
 # filehandle by default.
 #
-# Ex: <Alignment ss:Vertical="Bottom"/> or XML <Alignment/>
+# Ex: <Alignment ss:Vertical="Bottom"/> or <Alignment/>
 #
 sub _write_xml_element {
 

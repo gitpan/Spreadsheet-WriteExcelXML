@@ -4,8 +4,7 @@
 #
 # A test for Spreadsheet::WriteExcelXML.
 #
-# Tests the set_row() method. Tests the <Row> elements created by SWEX against
-# an XML file created by Excel in the __DATA__ section.
+# Tests the set_row() method.
 #
 # reverse('©'), July 2004, John McNamara, jmcnamara@cpan.org
 #
