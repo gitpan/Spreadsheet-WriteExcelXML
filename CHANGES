@@ -1,0 +1,14 @@
+Revision history for Perl module Spreadsheet::WriteExcelXML.
+
+
+0.01 April 24 2004
+
+    First CPAN release.
+
+    + Write strings.
+
+    + Write numbers.
+
+    + Write formulas.
+
+    + Formatting.

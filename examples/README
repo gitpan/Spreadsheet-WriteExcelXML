@@ -1,0 +1,48 @@
+
+
+The following is a description of the example files that are provided
+with Spreadsheet::WriteExcel. They are intended to demonstrate the
+different features and options of the module.
+
+
+Getting started
+===============
+simple.pl           An example of some of the basic features.
+regions.pl          Demonstrates multiple worksheets.
+stats.pl            Basic formulas and functions.
+formats.pl          Creates a demo of the available formatting.
+demo.pl             Creates a demo of some of the features.
+bug_report.pl       A template for submitting bug reports.
+
+
+Advanced
+========
+sales.pl            An example of a simple sales spreadsheet.
+stocks.pl           Demonstrates conditional formatting.
+write_array.pl      Example of writing 1D or 2D arrays of data.
+chess.pl            An example of formatting using properties.
+colors.pl           Demo of the colour palette and named colours.
+sendmail.pl         Send an Excel email attachment using Mail::Sender.
+stats_ext.pl        Same as stats.pl with external references.
+cgi.pl              A simple CGI program.
+mod_perl.pl         A simple mod_perl program.
+textwrap.pl         Demonstrates text wrapping options.
+protection.pl       Example of cell locking and formula hiding.
+copyformat.pl       Example of copying a cell format.
+
+
+Utility
+=======
+convertA1.pl        Helper functions for dealing with A1 notation.
+csv2xls.pl          Program to convert a CSV file to an Excel file.
+tab2xls.pl          Program to convert a tab separated file to xls.
+datecalc1.pl        Convert Unix/Perl time to Excel time.
+datecalc2.pl        Calculate an Excel date using Date::Calc.
+writemany.pl        Write an 2d array of values in one go.
+
+
+Developer
+=========
+function_locale.pl  Add non-English function names to Formula.pm.
+filehandle.pl       Examples of working with filehandles.
+writeA1.pl          Example of how to extend the module.
