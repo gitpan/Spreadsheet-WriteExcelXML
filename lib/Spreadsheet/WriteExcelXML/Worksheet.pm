@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter);
 
-$VERSION = '0.03';
+$VERSION = '0.06';
 
 ###############################################################################
 #
@@ -37,7 +37,7 @@ sub new {
 
     my $class                   = shift;
     my $self                    = Spreadsheet::WriteExcelXML::XMLwriter->new();
-    my $rowmax                  = 65536; # 16384 in Excel 5
+    my $rowmax                  = 65536;
     my $colmax                  = 256;
     my $strmax                  = 32767;
 
@@ -120,12 +120,15 @@ sub new {
     $self->{prev_col}           = -1;
 
     $self->{_table}             = [];
+    $self->{_merge}             = {};
+
     $self->{_datatypes}         = {String   => 1,
                                    Number   => 2,
                                    DateTime => 3,
                                    Formula  => 4,
                                    Blank    => 5,
                                    HRef     => 6,
+                                   Merge    => 7,
                                   };
 
 
@@ -964,6 +967,10 @@ sub write {
     elsif ($token =~ /^=/) {
         return $self->write_formula(@_);
     }
+    # Match array formula
+    elsif ($token =~ /^{=.*}$/) {
+        return $self->write_formula(@_);
+    }
     # Match blank
     elsif ($token eq '') {
         splice @_, 2, 1; # remove the empty string from the parameter list
@@ -1142,10 +1149,10 @@ sub _substitute_cellref {
     my $cell = uc(shift);
 
     # Convert a column range: 'A:A' or 'B:G'.
-    # A range such as A:A is equivalent to A1:A16384, so add rows as required
+    # A range such as A:A is equivalent to A1:65536, so add rows as required
     if ($cell =~ /\$?([A-I]?[A-Z]):\$?([A-I]?[A-Z])/) {
         my ($row1, $col1) =  $self->_cell_to_rowcol($1 .'1');
-        my ($row2, $col2) =  $self->_cell_to_rowcol($2 .'16384');
+        my ($row2, $col2) =  $self->_cell_to_rowcol($2 .'65536');
         return $row1, $col1, $row2, $col2, @_;
     }
 
@@ -1450,8 +1457,6 @@ sub write_blank {
 # write_formula($row, $col, $formula, $format)
 #
 # Write a formula to the specified row and column (zero indexed).
-# The textual representation of the formula is passed to the parser in
-# Formula.pm which returns a packed binary string.
 #
 # $format is optional.
 #
@@ -1470,9 +1475,6 @@ sub write_formula{
 
     if (@_ < 3) { return -1 }   # Check the number of args
 
-    my $record  = 0x0006;     # Record identifier
-    my $length;                 # Bytes to follow
-
     my $row     = $_[0];      # Zero indexed row
     my $col     = $_[1];      # Zero indexed column
     my $formula = $_[2];      # The formula text string
@@ -1482,17 +1484,94 @@ sub write_formula{
     my $type    = $self->{_datatypes}->{Formula}; # The data type
 
 
-
     # Check that row and col are valid and store max and min values
     return -2 if $self->_check_dimensions($row, $col);
 
+
+    my $array_range = 'RC' if $formula =~ s/^{(.*)}$/$1/;
+
     # Add the = sign if it doesn't exist
-    $formula    =~ s{^[^=]}{=};
+    $formula =~ s/^([^=])/=$1/;
+
 
     # Convert A1 style references in the formula to R1C1 references
     $formula    = $self->_convert_formula($row, $col, $formula);
 
-    $self->{_table}->[$row]->[$col] = [$type, $formula, $xf];
+
+    $self->{_table}->[$row]->[$col] = [$type, $formula, $xf, $array_range];
+
+    return 0;
+}
+
+
+###############################################################################
+#
+# write_array_formula($row1, $col1, $row2, $col2, $formula, $format)
+#
+# Write an array formula to the specified row and column (zero indexed).
+#
+# $format is optional.
+#
+# Returns  0 : normal termination
+#         -1 : insufficient number of arguments
+#         -2 : row or column out of range
+#
+sub write_array_formula {
+
+    my $self = shift;
+
+    # Check for a cell reference in A1 notation and substitute row and column
+    if ($_[0] =~ /^\D/) {
+        @_ = $self->_substitute_cellref(@_);
+    }
+
+    if (@_ < 5) { return -1 }   # Check the number of args
+
+    my $record  = 0x0006;       # Record identifier
+    my $length;                 # Bytes to follow
+
+    my $row1    = $_[0];        # First row
+    my $col1    = $_[1];        # First column
+    my $row2    = $_[2];        # Last row
+    my $col2    = $_[3];        # Last column
+    my $formula = $_[4];        # The formula text string
+
+    my $xf      = _XF($self, $row1, $col1, $_[5]); # The cell format
+    my $type    = $self->{_datatypes}->{Formula};  # The data type
+
+
+    # Swap last row/col with first row/col as necessary
+    ($row1, $row2) = ($row2, $row1) if $row1 > $row2;
+    ($col1, $col2) = ($col1, $col2) if $col1 > $col2;
+
+
+    # Check that row and col are valid and store max and min values
+    return -2 if $self->_check_dimensions($row2, $col2);
+
+
+    # Define array range
+    my $array_range;
+
+    if ($row1 == $row2 and $col1 == $col2) {
+        $array_range = 'RC';
+    }
+    else {
+        # Probably should use Utility::xl_rowcol_to_cell().
+        $array_range = ('A' .. 'IV')[$col1] . ($row1 +1) . ':' .
+                       ('A' .. 'IV')[$col2] . ($row2 +1);
+        $array_range = $self->_convert_formula($row1, $col1, $array_range);
+    }
+
+
+    # Remove array formula braces and add = as required.
+    $formula =~ s/^{(.*)}$/$1/;
+    $formula =~ s/^([^=])/=$1/;
+
+
+    # Convert A1 style references in the formula to R1C1 references
+    $formula = $self->_convert_formula($row1, $col1, $formula);
+
+    $self->{_table}->[$row1]->[$col1] = [$type, $formula, $xf, $array_range];
 
     return 0;
 }
@@ -1507,29 +1586,10 @@ sub write_formula{
 #
 sub store_formula{
 
-    my $self    = shift;
-    my $formula = $_[0];      # The formula text string
 
-    # Strip the = sign at the beginning of the formula string
-    $formula    =~ s(^=)();
+    my $self = shift;
 
-    # Parse the formula using the parser in Formula.pm
-    my $parser  = $self->{_parser};
-
-    # In order to raise formula errors from the point of view of the calling
-    # program we use an eval block and re-raise the error from here.
-    #
-    my @tokens;
-    eval { @tokens = $parser->parse_formula($formula) };
-
-    if ($@) {
-        $@ =~ s/\n$//;  # Strip the \n used in the Formula.pm die()
-        croak $@;       # Re-raise the error
-    }
-
-
-    # Return the parsed tokens in an anonymous array
-    return [@tokens];
+    # TODO Update for ExcelXML format
 }
 
 
@@ -1550,68 +1610,7 @@ sub repeat_formula {
 
     my $self = shift;
 
-    # Check for a cell reference in A1 notation and substitute row and column
-    if ($_[0] =~ /^\D/) {
-        @_ = $self->_substitute_cellref(@_);
-    }
-
-    if (@_ < 2) { return -1 }   # Check the number of args
-
-    my $record      = 0x0006;   # Record identifier
-    my $length;                 # Bytes to follow
-
-    my $row         = shift;    # Zero indexed row
-    my $col         = shift;    # Zero indexed column
-    my $formula_ref = shift;    # Array ref with formula tokens
-    my $format       = shift;   # XF format
-    my @pairs       = @_;       # Pattern/replacement pairs
-
-
-    # Enforce an even number of arguments in the pattern/replacement list
-    croak "Odd number of elements in pattern/replacement list" if @pairs %2;
-
-    # Check that $formula is an array ref
-    croak "Not a valid formula" if ref $formula_ref ne 'ARRAY';
-
-    my @tokens  = @$formula_ref;
-
-    # Ensure that there are tokens to substitute
-    croak "No tokens in formula" unless @tokens;
-
-    while (@pairs) {
-        my $pattern = shift @pairs;
-        my $replace = shift @pairs;
-
-        foreach my $token (@tokens) {
-            last if $token =~ s/$pattern/$replace/;
-        }
-    }
-
-
-    # Change the parameters in the formula cached by the Formula.pm object
-    my $parser    = $self->{_parser};
-    my $formula   = $parser->parse_tokens(@tokens);
-
-    croak "Unrecognised token in formula" unless defined $formula;
-
-
-    # Excel normally stores the last calculated value of the formula in $num.
-    # Clearly we are not in a position to calculate this a priori. Instead
-    # we set $num to zero and set the option flags in $grbit to ensure
-    # automatic calculation of the formula when the file is opened.
-    #
-    my $xf        = _XF($self, $row, $col, $format); # The cell format
-    my $num       = 0x00;                            # Current value of formula
-    my $grbit     = 0x03;                            # Option flags
-    my $chn       = 0x0000;                          # Must be zero
-
-    # Check that row and col are valid and store max and min values
-    return -2 if $self->_check_dimensions($row, $col);
-
-
     # TODO Update for ExcelXML format
-
-    return 0;
 }
 
 
@@ -2678,43 +2677,6 @@ sub _store_margin_bottom {
 
 ###############################################################################
 #
-# merge_cells($first_row, $first_col, $last_row, $last_col)
-#
-# This is an Excel97/2000 method. It is required to perform more complicated
-# merging than the normal align merge in Format.pm
-#
-sub merge_cells {
-
-    my $self    = shift;
-
-    # Check for a cell reference in A1 notation and substitute row and column
-    if ($_[0] =~ /^\D/) {
-        @_ = $self->_substitute_cellref(@_);
-    }
-
-    my $record  = 0x00E5;                   # Record identifier
-    my $length  = 0x000A;                   # Bytes to follow
-
-    my $cref     = 1;                       # Number of refs
-    my $rwFirst  = $_[0];                   # First row in reference
-    my $colFirst = $_[1];                   # First col in reference
-    my $rwLast   = $_[2] || $rwFirst;       # Last  row in reference
-    my $colLast  = $_[3] || $colFirst;      # Last  col in reference
-
-
-    # Excel doesn't allow a single cell to be merged
-    return if $rwFirst == $rwLast and $colFirst == $colLast;
-
-    # Swap last row/col with first row/col as necessary
-    ($rwFirst,  $rwLast ) = ($rwLast,  $rwFirst ) if $rwFirst  > $rwLast;
-    ($colFirst, $colLast) = ($colLast, $colFirst) if $colFirst > $colLast;
-
-    # TODO Update for ExcelXML format
-}
-
-
-###############################################################################
-#
 # merge_range($first_row, $first_col, $last_row, $last_col, $string, $format)
 #
 # This is a wrapper to ensure correct use of the merge_cells method, i.e., write
@@ -2741,9 +2703,6 @@ sub merge_range {
     my $format   = $_[5];
 
 
-    # Set the merge_range property of the format object. For BIFF8+.
-    $format->set_merge_range();
-
     # Excel doesn't allow a single cell to be merged
     croak "Can't merge single cell" if $rwFirst  == $rwLast and
                                        $colFirst == $colLast;
@@ -2752,18 +2711,17 @@ sub merge_range {
     ($rwFirst,  $rwLast ) = ($rwLast,  $rwFirst ) if $rwFirst  > $rwLast;
     ($colFirst, $colLast) = ($colLast, $colFirst) if $colFirst > $colLast;
 
+
+    # Check that column number is valid and store the max value
+    return if $self->_check_dimensions($rwLast, $colLast);
+
+
+    # Store the merge range as a HoHoHoA
+    $self->{_merge}->{$rwFirst}->{$colFirst} = [$colLast -$colFirst,
+                                                $rwLast  -$rwFirst];
+
     # Write the first cell
-    $self->write($rwFirst, $colFirst, $string, $format);
-
-    # Pad out the rest of the area with formatted blank cells.
-    for my $row ($rwFirst .. $rwLast) {
-        for my $col ($colFirst .. $colLast) {
-            next if $row == $rwFirst and $col == $colFirst;
-            $self->write_blank($row, $col, $format);
-        }
-    }
-
-    $self->merge_cells($rwFirst, $colFirst, $rwLast, $colLast);
+    return $self->write($rwFirst, $colFirst, $string, $format);
 }
 
 
@@ -3329,12 +3287,35 @@ sub _write_xml_cell {
     my @attribs;
 
 
-    push @attribs, "ss:Index",   $col +1       if $col != $self->{prev_col} +1;
+    push @attribs, "ss:Index",   $col +1 if $col != $self->{prev_col} +1;
+
+    if (exists $self->{_merge}->{$row}   and
+        exists $self->{_merge}->{$row}->{$col})
+    {
+        my ($across, $down) = @{$self->{_merge}->{$row}->{$col}};
+
+        push @attribs, "ss:MergeAcross", $across if $across;
+        push @attribs, "ss:MergeDown",   $down   if $down;
+
+        # Fill the merge range to ensure that it doesn't contain any data types.
+        # This.also ensure that $self->{prev_col} is incremented correctly.
+        for my $m_row (0 .. $down) {
+            for my $m_col (0 .. $across) {
+                next if $m_row == 0 and $m_col == 0;
+                my $type = $self->{_datatypes}->{Merge};
+                $self->{_table}->[$row +$m_row ]->[$col +$m_col] = [$type];
+             }
+        }
+    }
+
     push @attribs, "ss:StyleID", "s" . $format if $format;
 
 
     # Add to the attribute list for data types with additional options
     if ($datatype == $self->{_datatypes}->{Formula}) {
+        my $array_range = $self->{_table}->[$row]->[$col]->[3];
+
+        push @attribs, "ss:ArrayRange", $array_range if $array_range;
         push @attribs, "ss:Formula", $data;
     }
 
@@ -3347,45 +3328,42 @@ sub _write_xml_cell {
 
 
 
+    #
+    #
+    #
+
     # Write the Number data element
     if ($datatype == $self->{_datatypes}->{Number}) {
         $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
         $self->_write_xml_cell_data('Number', $data);
         $self->_write_xml_end_tag(4, 1, 0, 'Cell');
-        $self->{prev_col} = $col;
-        return;
     }
 
 
     # Write the String data element
-    if ($datatype == $self->{_datatypes}->{String}) {
+    elsif ($datatype == $self->{_datatypes}->{String}) {
         $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
         $self->_write_xml_cell_data('String', $data);
         $self->_write_xml_end_tag(4, 1, 0, 'Cell');
-        $self->{prev_col} = $col;
-        return;
     }
 
 
     # Write the DateTime data element
-    if ($datatype == $self->{_datatypes}->{DateTime}) {
+    elsif ($datatype == $self->{_datatypes}->{DateTime}) {
         $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
         $self->_write_xml_cell_data('DateTime', $data);
         $self->_write_xml_end_tag(4, 1, 0, 'Cell');
-        $self->{prev_col} = $col;
-        return;
     }
 
 
     # Write an empty Data element for a formula data
-    if ($datatype == $self->{_datatypes}->{Formula}) {
+    elsif ($datatype == $self->{_datatypes}->{Formula}) {
         $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
-        $self->{prev_col} = $col;
     }
 
 
     # Write the HRef data element
-    if ($datatype == $self->{_datatypes}->{HRef}) {
+    elsif ($datatype == $self->{_datatypes}->{HRef}) {
 
         $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
 
@@ -3412,19 +3390,22 @@ sub _write_xml_cell {
 
         $self->_write_xml_cell_data($type, $data);
         $self->_write_xml_end_tag(4, 1, 0, 'Cell');
-        $self->{prev_col} = $col;
-        return;
     }
-
 
 
     # Write an empty Data element for a blank cell
-    if ($datatype == $self->{_datatypes}->{Blank}) {
+    elsif ($datatype == $self->{_datatypes}->{Blank}) {
         $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
-        $self->{prev_col} = $col;
-        return;
     }
 
+    # Ignore merge cells
+    elsif ($datatype == $self->{_datatypes}->{Blank}) {
+        # Do nothing.
+    }
+
+
+    $self->{prev_col} = $col;
+    return;
 }
 
 
@@ -3452,7 +3433,7 @@ sub _write_xml_cell_data {
 
 ###############################################################################
 #
-# _convert_formula($A1_formula)
+# _convert_formula($row, $col, $A1_formula)
 #
 # Converts a string containing an Excel formula in A1 notation into a string
 # containing a formula in R1C1 notation.
@@ -3496,6 +3477,7 @@ sub _convert_formula {
 
     # Replace valid A1 cell references with R1C1 references. Cell ranges such
     # as B5::G10 are replaced in two goes.
+    # The negative look-behind is to prevent false matches such as =LOG10(G10)
     #
     $formula =~ s{(?<![A-Z])(\$?[A-I]?[A-Z]\$?\d+)}
                  {$self->_A1_to_R1C1($row, $col, $1)}eg;
@@ -3508,8 +3490,10 @@ sub _convert_formula {
 
 
     # Replace column ranges such as A:Z with R1C1 references.
+    # The negative look-behind is to prevent false column matches such
+    # as "=A1:A1" => "=RC:RC"
     #
-    $formula =~ s{(?<!])(\$?[A-I]?[A-Z]:\$?[A-I]?[A-Z])(?!\[)}
+    $formula =~ s{(?<![A-Z\]])(\$?[A-I]?[A-Z]:\$?[A-I]?[A-Z])}
                  {$self->_col_range_to_R1C1($col, $1)}eg;
 
 

@@ -184,15 +184,18 @@ sub add_worksheet {
     croak 'Invalid Excel character [:*?/\\] in worksheet name: ' . $name
           if $name =~ m{[:*?/\\]};
 
-
     my $index     = @{$self->{_worksheets}};
     my $sheetname = $self->{_sheetname};
 
     if ($name eq "" ) { $name = $sheetname . ($index+1) }
 
     # Check that the worksheet name doesn't already exist: a fatal Excel error.
+    # The check must also exclude case insensitive matches.
     foreach my $tmp (@{$self->{_worksheets}}) {
-        croak "Worksheet '$name' already exists" if $name eq $tmp->get_name();
+        if (lc $name eq lc $tmp->get_name()) {
+            croak "Worksheet name '$name', with case ignored, " .
+                  "is already in use";
+        }
     }
 
 

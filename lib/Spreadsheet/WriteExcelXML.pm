@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.05'; # somewhere i have never travelled
+$VERSION = '0.06'; # What would JCC do?
 
 
 
@@ -54,7 +54,7 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.05 of Spreadsheet::WriteExcelXML, released July 02, 2004.
+This document refers to version 0.06 of Spreadsheet::WriteExcelXML, released August 19, 2004.
 
 
 
@@ -173,7 +173,6 @@ The Spreadsheet::WriteExcelXML module provides an object oriented interface to a
     add_worksheet()
     add_format()
     set_custom_color() *
-    set_palette_xl5() **
     sheets()
     set_1904() *
     set_codepage() *
@@ -283,9 +282,7 @@ At least one worksheet should be added to a new workbook. A worksheet is used to
 
 If C<$sheetname> is not specified the default Excel convention will be followed, i.e. Sheet1, Sheet2, etc.
 
-The worksheet name must be a valid Excel worksheet name, i.e. it cannot contain any of the following characters, C<: * ? / \> and it must be less than 32 characters. In addition, you cannot use the same C<$sheetname> for more than one worksheet.
-
-This method was previously called C<addworksheet()>. The old method name is still supported but deprecated.
+The worksheet name must be a valid Excel worksheet name, i.e. it cannot contain any of the following characters, C<: * ? / \> and it must be less than 32 characters. In addition, you cannot use the same, case insensitive, C<$sheetname> for more than one worksheet.
 
 
 
@@ -298,8 +295,6 @@ The C<add_format()> method can be used to create new Format objects which are us
     $format2 = $workbook->add_format();       # Set properties later
 
 See the L<CELL FORMATTING> section for more details about Format properties and how to set them.
-
-This method was previously called C<addformat()>. The old method name is still supported but deprecated.
 
 
 
@@ -452,7 +447,7 @@ The following methods are available through a new worksheet:
     outline_settings() ***
     freeze_panes() *
     thaw_panes() *
-    merge_range() *
+    merge_range()
     set_zoom() *
 
     *   Not yet supported. See Spreadsheet::WriteExcel.
@@ -540,6 +535,9 @@ The general rule is that if the data looks like a I<something> then a I<somethin
     $worksheet->write('A17,  02                    ); # write_string()
     $worksheet->write('A18,  00002                 ); # write_string()
 
+    # Write an array formula. Not available in Spreadsheet::WriteExcel.
+    $worksheet->write('A18,  '{=SUM(A1:B1*A2:B2)}' ); # write_formula()
+
 
 The "looks like" rule is defined by regular expressions:
 
@@ -554,6 +552,8 @@ C<write_url()> if C<$token> is a http, https, ftp or mailto URL based on the fol
 C<write_url()> if C<$token> is an internal or external sheet reference based on the following regex: C<$token =~ m[^(in|ex)ternal:]>.
 
 C<write_formula()> if the first character of C<$token> is C<"=">.
+
+C<write_array_formula()> if the C<$token> matches C</^{=.*}$/>.
 
 C<write_row()> if C<$token> is an array ref.
 
@@ -949,8 +949,6 @@ There is no way to force this behaviour through the C<write()> method.
 
 The parameters C<$string> and the C<$format> are optional and their position is interchangeable. However, they are applied only to the first cell in the range.
 
-Note: Hyperlinks are not available in Excel 5. They will appear as a string only.
-
 See also, the note about L<Cell notation>.
 
 
@@ -967,9 +965,39 @@ Write a formula or function to the cell specified by C<$row> and C<$column>:
     $worksheet->write_formula('A5', '=AVERAGE(1, 2, 3, 4)'    );
     $worksheet->write_formula('A6', '=DATEVALUE("1-Jan-2001")');
 
+Array formulas are also supported:
+
+    $worksheet->write_formula('A7', '{=SUM(A1:B1*A2:B2)}'     );
+
+See also the C<write_array_formula()> method below.
+
+Note: Array formulas are not supported by Spreadsheet::WriteExcel.
+
 See the note about L<Cell notation>. For more information about writing Excel formulas see L<FORMULAS AND FUNCTIONS IN EXCEL>
 
-See also the section "Improving performance when working with formulas" and the C<store_formula()> and C<repeat_formula()> methods.
+
+
+
+=head2 write_array_formula($first_row, $first_col, $last_row, $last_col, $formula, $format)
+
+Write an array formula to a cell range. In Excel an array formula is a formula that performs a calculation on a set of values. It can return a single value or a range of values.
+
+An array formula is indicated by a pair of braces around the formula: C<{=SUM(A1:B1*A2:B2)}>.  If the array formula returns a single value then the C<$first_> and C<$last_> parameters should be the same:
+
+    $worksheet->write_array_formula('A1:A1', '{=SUM(B1:C1*B2:C2)}');
+
+It this case however it is easier to just use the C<write_formula()> or C<write()> methods:
+
+    # Same as above but more concise.
+    $worksheet->write('A1', '{=SUM(B1:C1*B2:C2)}');
+    $worksheet->write_formula('A1', '{=SUM(B1:C1*B2:C2)}');
+
+For array formulas that return a range of values you must specify the range that the return values will be written to:
+
+    $worksheet->write_array_formula('A1:A3',    '{=TREND(C1:C3,B1:B3)}');
+    $worksheet->write_array_formula(0, 0, 2, 0, '{=TREND(C1:C3,B1:B3)}');
+
+Note: Array formulas are not supported by Spreadsheet::WriteExcel.
 
 
 
@@ -1293,8 +1321,6 @@ See also the C<freeze_panes()> method and the C<panes.pl> program in the C<examp
 
 =head2 merge_range($first_row, $first_col, $last_row, $last_col, $token, $format)
 
-B<Note:> This method is not yet supported by Spreadsheet::WriteExcelXML. See Spreadsheet::WriteExcel if you need this feature.
-
 Merging cells is generally achieved by setting the C<merge> property of a Format object, see L<CELL FORMATTING>. However, this only allows simple Excel5 style horizontal merging which Excel refers to as "center across selection".
 
 The C<merge_range()> method allows you to do Excel97+ style formatting where the cells can contain other types of alignment in addition to the merging:
@@ -1307,17 +1333,13 @@ The C<merge_range()> method allows you to do Excel97+ style formatting where the
 
     $worksheet->merge_range('B3:D4', 'Vertical and horizontal', $format);
 
-The format object that is used with a C<merge_range()> method call is marked internally as being associated with a merged range. As such, it shouldn't be used for other formatting.
-
 C<merge_range()> writes its $token argument using the worksheet C<write()> method. Therefore it will handle numbers, strings, formulas or urls as required.
 
 Setting the C<merge> property of the format isn't required when you are using C<merge_range()>. In fact using it will exclude the use of any other horizontal alignment option.
 
 The full possibilities of this method are shown in the C<merge3.pl>, C<merge4.pl> and C<merge5.pl> programs in the C<examples> directory of the distribution.
 
-The C<merge_range()> method doesn't work with Excel versions before Excel 97.
 
-Note, the C<merge_range()> method replaces the C<merge_cells()> method as a simpler and safer way of generating a merged range. C<merge_cells()> is still available but it is deprecated and no longer documented.
 
 
 =head2 set_zoom($scale)
@@ -1882,7 +1904,9 @@ The following table shows the Excel format categories, the formatting properties
                Rotation          rotation        set_rotation()
                Text wrap         text_wrap       set_text_wrap()
                Justify last      text_justlast   set_text_justlast()
-               Merge             merge           set_merge()
+               Center across     center_across   set_center_across()
+               Indentation       indent          set_indent()
+               Shrink to fit     shrink          set_shrink()
 
     Pattern    Cell pattern      pattern         set_pattern()
                Background color  bg_color        set_bg_color()
@@ -2004,7 +2028,9 @@ The following Format methods are available:
     set_rotation()
     set_text_wrap()
     set_text_justlast()
-    set_merge()
+    set_center_across()
+    set_indent()
+    set_shrink()
     set_pattern()
     set_bg_color()
     set_fg_color()
@@ -2416,7 +2442,7 @@ Note: This offers weak protection even with a password, see the note in relation
                         'right'
                         'fill'
                         'justify'
-                        'merge'
+                        'center_across'
 
                         'top'               Vertical
                         'vcenter'
@@ -2431,7 +2457,7 @@ This method is used to set the horizontal and vertical text alignment within a c
     $worksheet->set_row(0, 30);
     $worksheet->write(0, 0, "X", $format);
 
-Text can be aligned across two or more adjacent cells using the C<merge> property. See also, the C<set_merge()> method below.
+Text can be aligned across two or more adjacent cells using the C<center_across> property. However, for genuine merged cells it is better to use the C<merge_range()> worksheet method.
 
 The C<vjustify> (vertical justify) option can be used to provide automatic text wrapping in a cell. The height of the cell will be adjusted to accommodate the wrapped text. To specify where the text wraps use the C<set_text_wrap()> method.
 
@@ -2441,23 +2467,23 @@ For further examples see the 'Alignment' worksheet created by formats.pl.
 
 
 
-=head2 set_merge()
+=head2 set_center_across()
 
-    Default state:      Cell merging is off
-    Default action:     Turn cell merging on
+    Default state:      Center across selection is off
+    Default action:     Turn center across on
     Valid args:         1
 
-Text can be aligned across two or more adjacent cells using the C<set_merge()> method. This is an alias for the C<set_align('merge')> method call.
+Text can be aligned across two or more adjacent cells using the C<set_center_across()> method. This is an alias for the C<set_align('center_across')> method call.
 
 Only one cell should contain the text, the other cells should be blank:
 
     my $format = $workbook->add_format();
-    $format->set_merge();
+    $format->set_center_across();
 
-    $worksheet->write(1, 1, 'Merged cells', $format);
+    $worksheet->write(1, 1, 'Center across selection', $format);
     $worksheet->write_blank(1, 2, $format);
 
-See also the C<merge1.pl>, C<merge2.pl> and C<merge3.pl> programs in the C<examples> directory and the C<merge_range()> method.
+See also the C<merge1.pl> to C<merge5.pl> programs in the C<examples> directory and the C<merge_range()> method.
 
 
 
@@ -2487,11 +2513,50 @@ Excel will adjust the height of the row to accommodate the wrapped text. A simil
 
 Set the rotation of the text in a cell. The rotation can be any angle in the range -90 to 90 degrees.
 
-    my $format = $workbook->addformat();
+    my $format = $workbook->add_format();
     $format->set_rotation(30);
     $worksheet->write(0, 0, "This text is rotated", $format);
 
-The angle 270 is also supported. This indicates text where the letters run from top to bottom. format.
+
+The angle 270 is also supported. This indicates text where the letters run from top to bottom.
+
+
+
+=head2 set_indent()
+
+
+    Default state:      Text indentation is off
+    Default action:     Indent text 1 level
+    Valid args:         Positive integers
+
+
+This method can be used to indent text. The argument, which should be an integer, is taken as the level of indentation:
+
+
+    my $format = $workbook->add_format();
+    $format->set_indent(2);
+    $worksheet->write(0, 0, "This text is indented", $format);
+
+
+Indentation is a horizontal alignment property. It will override any other horizontal properties but it can be used in conjunction with vertical properties.
+
+
+
+
+=head2 set_shrink()
+
+
+    Default state:      Text shrinking is off
+    Default action:     Turn "shrink to fit" on
+    Valid args:         1
+
+
+This method can be used to shrink text so that it fits in a cell.
+
+
+    my $format = $workbook->add_format();
+    $format->set_shrink();
+    $worksheet->write(0, 0, "Honey, I shrunk the text!", $format);
 
 
 
@@ -2551,8 +2616,6 @@ For further examples see the 'Patterns' worksheet created by formats.pl.
 
 
 The C<set_fg_color()> method can be used to set the foreground colour of a pattern.
-
-Note, in older versions of Spreadsheet::WriteExcelXML it was recommended to use C<set_fg_color()> to set the colour of a solid fill pattern. The preferred method is now to use C<set_bg_color()>, although for backward compatibility the role of C<set_fg_color()> and C<set_bg_color()> are interchangeable when using a solid fill pattern.
 
 For further examples see the 'Patterns' worksheet created by formats.pl.
 
@@ -2815,9 +2878,8 @@ Some additional outline properties can be set via the C<outline_settings()> work
 The first thing to note is that there are still some outstanding issues with the implementation of formulas and functions:
 
     1. Named ranges are not supported.
-    2. Array formulas are not supported.
 
-However, these constraints will be removed in future versions. They are here because of a trade-off between features and time.
+However, this and other constraints will be removed in future versions. They are here because of a trade-off between features and time.
 
 
 
@@ -2832,7 +2894,7 @@ A formula is a string that begins with an equals sign:
 
 The formula can contain numbers, strings, boolean values, cell references, cell ranges and functions. Named ranges are not supported. Formulas should be written as they appear in Excel, that is cells and functions must be in uppercase.
 
-Cells in Excel are referenced using the A1 notation system where the column is designated by a letter and the row by a number. Columns range from A to IV i.e. 0 to 255, rows range from 1 to 16384. The C<Spreadsheet::WriteExcelXML::Utility> module that is included in the distro contains helper functions for dealing with A1 notation, for example:
+Cells in Excel are referenced using the A1 notation system where the column is designated by a letter and the row by a number. Columns range from A to IV i.e. 0 to 255, rows range from 1 to 65536. The C<Spreadsheet::WriteExcelXML::Utility> module that is included in the distro contains helper functions for dealing with A1 notation, for example:
 
     use Spreadsheet::WriteExcelXML::Utility;
 
@@ -3260,6 +3322,7 @@ different features and options of the module.
     protection.pl       Example of cell locking and formula hiding.
     copyformat.pl       Example of copying a cell format.
     web_component.pl    Create an interactive Excel webpage with IE.
+    array_formula.pl    Examples of how to write array formulas.
 
 
     Utility
@@ -3284,13 +3347,13 @@ different features and options of the module.
 
 The following limits are imposed by Excel or the version of the BIFF file that has been implemented:
 
-    Description                          Limit   Source
-    -----------------------------------  ------  -------
-    Maximum number of chars in a string  32767   Excel 97+
-    Maximum number of columns            256     Excel All versions
-    Maximum number of rows in Excel 97   65536   Excel 97+
-    Maximum chars in a sheet name        31      Excel All versions
-    Maximum chars in a header/footer     254     Excel All versions
+    Description                          Limit
+    -----------------------------------  ------
+    Maximum number of chars in a string  32767
+    Maximum number of columns            256
+    Maximum number of rows               65536
+    Maximum chars in a sheet name        31
+    Maximum chars in a header/footer     254
 
 
 
@@ -3523,14 +3586,25 @@ Spreadsheet::ParseExcel: http://search.cpan.org/search?dist=Spreadsheet-ParseExc
 
 John McNamara jmcnamara@cpan.org
 
-    your slightest look will easily unclose me
-    though i have closed myself as fingers,
-    you open always petal by petal myself as Spring opens
-    (touching skilfully,mysteriously)her first rose
+    now your boyfriend burned his jacket
+    ticket expired
+    tyres are knackered
+    knackers are tired
 
-        -- e.e. cummings
+    you can tell your tale to the gutter press
+    get paid to peddle smut
+    now you've ridden the road of excess
+    that leads to the psycle sluts
 
+    or you can dine and whine on stuff that's bound to give you boils
+    hot dogs direct from cruft's
+    done in diesel oil
+    or the burger joint around the bend
+    where the meals thank christ are skimpy
+    for you that's how the world could end
+    not with a bang but a wimpy.
 
+    -- John Cooper Clarke
 
 
 =head1 PATENT LICENSE

@@ -13,7 +13,7 @@
 use strict;
 
 use Spreadsheet::WriteExcelXML::Worksheet;
-use Test::More tests => 69;
+use Test::More tests => 70;
 
 
 
@@ -70,9 +70,10 @@ my @tests = (
                 [ 2, 0, '=DAYS360(S360,S360)' =>
                         '=DAYS360(R[357]C[18],R[357]C[18])'         ],
 
-                # Test false colum range match after range conversion
+                # Test false column range match after range conversion
                 [ 5, 1, "=B1:I1"            => "=R[-5]C:R[-5]C[7]"  ],
                 [ 1, 1, "=SUM(Data!B2:B9)"  => "=SUM(Data!RC:R[7]C)"],
+                [ 0, 0, "=Sheet2!A1:A1"     => "=Sheet2!RC:RC"      ],
 
 
                 # Test for ranges

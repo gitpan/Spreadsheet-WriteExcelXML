@@ -2,8 +2,8 @@
 
 #######################################################################
 #
-# Example of how to use the WriteExcel module to write text and numbers
-# to an Excel binary file.
+# Example of how to use the WriteExcelXML module to write text and
+# numbers to an Excel binary file.
 #
 # reverse('©'), March 2001, John McNamara, jmcnamara@cpan.org
 #

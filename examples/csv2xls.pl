@@ -2,7 +2,7 @@
 
 ###############################################################################
 #
-# Example of how to use the WriteExcel module
+# Example of how to use the WriteExcelXML module
 #
 # Program to convert a CSV comma-separated value file into an Excel file.
 # This is more or less an non-op since Excel can read CSV files.

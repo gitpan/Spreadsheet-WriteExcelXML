@@ -19,8 +19,12 @@ t/13_date_seconds.t
 t/21_set_column.t
 t/22_set_row.t
 t/23_index.t
+t/31_hyperlink.t
+t/32_merge.t
+t/33_array_formula.t
 
 examples/README
+examples/array_formula.pl
 examples/bug_report.pl
 examples/cgi.pl
 examples/chess.pl
@@ -36,6 +40,11 @@ examples/filehandle.pl
 examples/formats.pl
 examples/hyperlink1.pl
 examples/hyperlink2.pl
+examples/merge1.pl
+examples/merge2.pl
+examples/merge3.pl
+examples/merge4.pl
+examples/merge5.pl
 examples/mod_perl.pl
 examples/protection.pl
 examples/regions.pl

@@ -2,7 +2,7 @@
 
 ######################################################################
 #
-# Example of how to use the WriteExcel module
+# Example of how to use the WriteExcelXML module
 #
 # The following converts a tab separated file into an Excel file
 #

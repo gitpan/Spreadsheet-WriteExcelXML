@@ -151,8 +151,6 @@ my @tests11 = (
 
 my $writer = Spreadsheet::WriteExcelXML::XMLwriter->new();
 
-$writer->_set_printed(0); # Don't print to output filehandle
-
 
 ###############################################################################
 #

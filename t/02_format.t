@@ -13,7 +13,7 @@
 use strict;
 
 use Spreadsheet::WriteExcelXML;
-use Test::More tests => 191;
+use Test::More tests => 192;
 
 
 
@@ -110,6 +110,9 @@ my @tests1 = (  # Cell alignment properties
 
                 [['rotation', -90],
                   '<Alignment ss:Vertical="Bottom" ss:Rotate="-90"/>'       ],
+
+                [['rotation', 270],
+                  '<Alignment ss:Vertical="Bottom" ss:VerticalText="1"/>'   ],
 
 
                 # Tests for properties are mutually exclusive
@@ -731,8 +734,7 @@ my @tests7 = (  # Font color conversion test
 
 my $test_file = "temp_test_file.xml";
 my $workbook  = Spreadsheet::WriteExcelXML->new($test_file);
-
-$workbook->_set_printed(0);
+   $workbook->{_filehandle} = undef; # Turn default print off during testing.
 
 my $worksheet = $workbook->add_worksheet();
 

@@ -20,18 +20,23 @@ my $worksheet  = $workbook->add_worksheet('Demo');
 my $worksheet2 = $workbook->add_worksheet('Another sheet');
 my $worksheet3 = $workbook->add_worksheet('And another');
 
+my $bold       = $workbook->add_format(bold => 1);
 
 
 #######################################################################
 #
 # Write a general heading
 #
-$worksheet->set_column('A:B', 36);
+$worksheet->set_column('A:A', 36, $bold);
+$worksheet->set_column('B:B', 20       );
+$worksheet->set_row   (0,     40       );
+
 my $heading  = $workbook->add_format(
                                         bold    => 1,
                                         color   => 'blue',
-                                        size    => 18,
+                                        size    => 16,
                                         merge   => 1,
+                                        align  => 'vcenter',
                                         );
 
 my @headings = ('Features of Spreadsheet::WriteExcelXML', '');

@@ -2,7 +2,7 @@
 
 ###############################################################################
 #
-# Example of how to use the WriteExcel module to write a basic multiple
+# Example of how to use the WriteExcelXML module to write a basic multiple
 # worksheet Excel file.
 #
 # reverse('©'), March 2001, John McNamara, jmcnamara@cpan.org

@@ -15,7 +15,7 @@
 #
 # Change the name of this file to Cgi.pm.
 # Change the package location to where-ever you locate this package.
-# Below, I have this located in the WriteExcel directory.
+# Below, I have this located in the WriteExcelXML directory.
 #
 # Your httpd.conf entry for this module, should you choose to use it
 # as a stand alone app, should look similar to the following:

@@ -636,9 +636,26 @@ sub set_valign {
 
 ###############################################################################
 #
+# set_center_across()
+#
+# Implements the Excel5 style "merge".
+#
+sub set_center_across {
+
+    my $self     = shift;
+
+    $self->set_text_h_align(6);
+}
+
+
+###############################################################################
+#
 # set_merge()
 #
-# This is an alias for the unintuitive set_align('merge')
+# This was the way to implement a merge in Excel5. However it should have been
+# called "center_across" and not "merge".
+# This is now deprecated. Use set_center_across() or better merge_range().
+#
 #
 sub set_merge {
 
@@ -715,7 +732,13 @@ sub set_rotation {
     # The arg type can be a double but the Excel dialog only allows integers.
     $rotation = int $rotation;
 
-    if ($rotation < -90 or $rotation > 90) {
+    if ($rotation == 270) {
+        # Special case inherited from the S::WE interface.
+        $self->{_text_vertical} = 1;
+        $self->{_rotation}      = 0;
+        return
+    }
+    elsif ($rotation < -90 or $rotation > 90) {
         carp "Rotation $rotation outside range: -90 <= angle <= 90";
         $self->{_rotation} = 0;
         return;
@@ -723,7 +746,6 @@ sub set_rotation {
 
     # Rotation and vertical text are mutually exclusive
     $self->{_text_vertical} = 0;
-
     $self->{_rotation}      = $rotation;
 }
 

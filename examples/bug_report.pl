@@ -55,9 +55,9 @@ print << 'HINTS_2';
         program should also be self contained and working.
 
     A sample bug report is generated below. If you use this format then it
-    will help to analyse you question and repond to it more quickly..
+    will help to analyse your question and respond to it more quickly.
 
-    Please don't send patches without contacting the author first..
+    Please don't send patches without contacting the author first.
 
 
 HINTS_2
@@ -90,7 +90,7 @@ Here is some code that demonstrates the problem.
 
     __END__
 
-My system details are as follows:
+My automatically generated system details are as follows:
 EMAIL
 
 

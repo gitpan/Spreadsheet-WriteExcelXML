@@ -20,7 +20,8 @@ my $result;
 my $test_file = "temp_test_file.xml";
 
 my $workbook  = Spreadsheet::WriteExcelXML->new($test_file);
-   $workbook->_set_printed(0);
+   $workbook->{_filehandle} = undef; # Turn default print off during testing.
+
 my $worksheet = $workbook->add_worksheet();
 
 

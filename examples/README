@@ -19,7 +19,7 @@ Advanced
 ========
 sales.pl            An example of a simple sales spreadsheet.
 stocks.pl           Demonstrates conditional formatting.
-write_array.pl      Example of writing 1D or 2D arrays of data.
+write_arrays.pl     Example of writing 1D or 2D arrays of data.
 chess.pl            An example of formatting using properties.
 colors.pl           Demo of the colour palette and named colours.
 sendmail.pl         Send an Excel email attachment using Mail::Sender.
@@ -32,6 +32,7 @@ textwrap.pl         Demonstrates text wrapping options.
 protection.pl       Example of cell locking and formula hiding.
 copyformat.pl       Example of copying a cell format.
 web_component.pl    Create an interactive Excel webpage with IE.
+array_formula.pl    Examples of how to write array formulas.
 
 
 Utility

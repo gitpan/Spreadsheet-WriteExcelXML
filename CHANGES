@@ -1,6 +1,25 @@
 Revision history for Perl module Spreadsheet::WriteExcelXML.
 
 
+0.06 August 19 2004
+
+    ! Enabled merge_range() as per Spreadsheet::WriteExcel.
+
+    + Added merge.t test for the above behaviour.
+
+    + Added merge1.pl to merge5.pl examples.
+
+    ! Renamed the Excel 5 style merge() format to the more correct
+      center_across().
+
+    + Added support for array formulas as suggested by
+      Masaaki Hirose.
+
+    + Added array_formula.t test for the above behaviour.
+
+    + Added array_formula.pl example.
+
+
 0.05 July 2 2004
 
     ! Fixed bug with implicit <Cell> ss:Index attribute.
