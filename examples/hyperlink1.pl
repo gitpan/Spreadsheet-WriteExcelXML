@@ -20,9 +20,9 @@ die "Couldn't create new Excel file: $!.\n" unless defined $workbook;
 
 my $worksheet = $workbook->add_worksheet('Hyperlinks');
 
-# Format the first column (not available yet)
-#$worksheet->set_column('A:A', 30);
-#$worksheet->set_selection('B1');
+# Format the first column
+$worksheet->set_column('A:A', 30);
+$worksheet->set_selection('B1');
 
 
 # Add the standard url link format.

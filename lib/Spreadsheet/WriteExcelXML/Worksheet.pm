@@ -3289,7 +3289,8 @@ sub _write_xml_rows {
         if (my $row_ref = $self->{_table}->[$row]) {
             $self->_write_xml_start_tag(3, 1, 0, 'Row', @attribs);
 
-            my $col = 0;
+            my $col           = 0;
+            $self->{prev_col} = -1;
 
             for my $col_ref (@$row_ref) {
                 $self->_write_xml_cell($row, $col) if $col_ref;

@@ -46,6 +46,5 @@ writemany.pl        Write an 2d array of values in one go.
 
 Developer
 =========
-function_locale.pl  Add non-English function names to Formula.pm.
 filehandle.pl       Examples of working with filehandles.
 writeA1.pl          Example of how to extend the module.

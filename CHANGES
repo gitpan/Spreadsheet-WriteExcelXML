@@ -1,6 +1,13 @@
 Revision history for Perl module Spreadsheet::WriteExcelXML.
 
 
+0.05 July 2 2004
+
+    ! Fixed bug with implicit <Cell> ss:Index attribute.
+
+    + Added index.t test for the above behaviour.
+
+
 0.04 July 1 2004
 
     ! Added XML escape for "\n" and test. Used in set_text_wrap().

@@ -18,6 +18,7 @@ t/12_date_only.t
 t/13_date_seconds.t
 t/21_set_column.t
 t/22_set_row.t
+t/23_index.t
 
 examples/README
 examples/bug_report.pl
@@ -33,7 +34,6 @@ examples/date_time.pl
 examples/demo.pl
 examples/filehandle.pl
 examples/formats.pl
-examples/function_locale.pl
 examples/hyperlink1.pl
 examples/hyperlink2.pl
 examples/mod_perl.pl
@@ -50,4 +50,3 @@ examples/textwrap.pl
 examples/writeA1.pl
 examples/write_arrays.pl
 examples/web_component.pl
-

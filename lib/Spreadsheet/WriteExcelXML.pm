@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.04'; # somewhere i have never travelled
+$VERSION = '0.05'; # somewhere i have never travelled
 
 
 
@@ -54,7 +54,7 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.04 of Spreadsheet::WriteExcelXML, released July 01, 2004.
+This document refers to version 0.05 of Spreadsheet::WriteExcelXML, released July 02, 2004.
 
 
 
@@ -2954,7 +2954,6 @@ The following table lists all of the core functions supported by Excel 5 and Spr
     DAY           IF            NEGBINOMDIST  SINH          YEAR
     DAYS360       INDEX         NORMDIST      SKEW          ZTEST
 
-You can also modify the module to support function names in the following languages: German, French, Spanish, Portuguese, Dutch, Finnish, Italian and Swedish. See the C<function_locale.pl> program in the C<examples> directory of the distro.
 
 For a general introduction to Excel's formulas and an explanation of the syntax of the function refer to the Excel help files or the following links: http://msdn.microsoft.com/library/default.asp?URL=/library/officedev/office97/s88f2.htm and http://msdn.microsoft.com/library/default.asp?URL=/library/en-us/office97/s992f.htm
 
@@ -3275,7 +3274,6 @@ different features and options of the module.
 
     Developer
     =========
-    function_locale.pl  Add non-English function names to Formula.pm.
     filehandle.pl       Examples of working with filehandles.
     writeA1.pl          Example of how to extend the module.
 
