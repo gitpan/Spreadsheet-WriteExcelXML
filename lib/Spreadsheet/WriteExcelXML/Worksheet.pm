@@ -7,7 +7,7 @@ package Spreadsheet::WriteExcelXML::Worksheet;
 #
 # Used in conjunction with Spreadsheet::WriteExcelXML
 #
-# Copyright 2000-2004, John McNamara, jmcnamara@cpan.org
+# Copyright 2000-2005, John McNamara, jmcnamara@cpan.org
 #
 # Documentation after __END__
 #
@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter);
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 ###############################################################################
 #
@@ -125,6 +125,7 @@ sub new {
 
     $self->{_table}             = [];
     $self->{_merge}             = {};
+    $self->{_comment}           = {};
 
     $self->{_datatypes}         = {String   => 1,
                                    Number   => 2,
@@ -133,6 +134,7 @@ sub new {
                                    Blank    => 5,
                                    HRef     => 6,
                                    Merge    => 7,
+                                   Comment  => 8,
                                   };
 
 
@@ -1121,7 +1123,47 @@ sub write_comment {
 
     my $self      = shift;
 
-    # TODO
+    # Check for a cell reference in A1 notation and substitute row and column
+    if ($_[0] =~ /^\D/) {
+        @_ = $self->_substitute_cellref(@_);
+    }
+
+
+    if (@_ < 3) { return -1 } # Check the number of args
+
+    my $row         = $_[0];
+    my $col         = $_[1];
+    my $comment     = $_[2];
+    my $length      = length($_[2]);
+    my $error       = 0;
+    my $max_len     = 30831; # Maintain same max as binary file.
+    my $type        = $self->{_datatypes}->{Comment};
+
+    # Check that row and col are valid and store max and min values
+    return -2 if $self->_check_dimensions($row, $col);
+
+    # String must be <= 30831 chars
+    if ($length > $max_len) {
+        $comment    = substr($comment, 0, $max_len);
+        $error      = -3;
+    }
+
+
+    # Check that row and col are valid and store max and min values
+    return -2 if $self->_check_dimensions($row, $col);
+
+
+    # Add a datatype to the cell if it doesn't already contain one.
+    # This prevents an empty cell with a comment from being ignored.
+    #
+    if (not $self->{_table}->[$row]->[$col]) {
+        $self->{_table}->[$row]->[$col] = [$type];
+    }
+
+    # Store the comment.
+    $self->{_comment}->{$row}->{$col} = $comment;
+
+    return $error;
 }
 
 
@@ -1298,7 +1340,7 @@ sub outline_settings {
 ###############################################################################
 ###############################################################################
 #
-# BIFF RECORDS
+# Public Methods
 #
 
 
@@ -1343,10 +1385,9 @@ sub write_number {
 
 ###############################################################################
 #
-# write_string ($row, $col, $string, $format)
+# write_string ($row, $col, $string, $format, $html)
 #
 # Write a string to the specified row and column (zero indexed).
-# NOTE: there is an Excel 5 defined limit of 255 characters.
 # $format is optional.
 # Returns  0 : normal termination
 #         -1 : insufficient number of arguments
@@ -1368,6 +1409,8 @@ sub write_string {
     my $col     = $_[1];                         # Zero indexed column
     my $str     = $_[2];
     my $xf      = _XF($self, $row, $col, $_[3]); # The cell format
+    my $html    = $_[4] || 0;                    # Cell contains html text
+    my $comment = '';                            # Cell comment
     my $type    = $self->{_datatypes}->{String}; # The data type
 
     my $str_error = 0;
@@ -1380,10 +1423,48 @@ sub write_string {
         $str_error = -3;
     }
 
+    # Check if the cell already has a comment
+    if ($self->{_table}->[$row]->[$col]) {
+        $comment =  $self->{_table}->[$row]->[$col]->[4];
+    }
 
-    $self->{_table}->[$row]->[$col] = [$type, $str, $xf];
+
+    $self->{_table}->[$row]->[$col] = [$type, $str, $xf, $html, $comment];
 
     return $str_error;
+}
+
+
+###############################################################################
+#
+# write_html_string ($row, $col, $string, $format)
+#
+# Write a string to the specified row and column (zero indexed).
+#
+# Returns  0 : normal termination
+#         -1 : insufficient number of arguments
+#         -2 : row or column out of range
+#         -3 : long string truncated to 255 chars
+#
+sub write_html_string {
+
+    my $self = shift;
+
+    # Check for a cell reference in A1 notation and substitute row and column
+    if ($_[0] =~ /^\D/) {
+        @_ = $self->_substitute_cellref(@_);
+    }
+
+    if (@_ < 3) { return -1 }           # Check the number of args
+
+    my $row     = $_[0];                # Zero indexed row
+    my $col     = $_[1];                # Zero indexed column
+    my $str     = $_[2];
+    my $xf      = $_[3];                # The cell format
+    my $html    = 1;                    # Cell contains html text
+
+
+    return $self->write_string($row, $col, $str, $xf, $html);
 }
 
 
@@ -2749,10 +2830,20 @@ sub _write_xml_cell {
     my $format      = $self->{_table}->[$row]->[$col]->[2];
 
     my @attribs;
+    my $comment = '';
 
 
+    ###########################################################################
+    #
+    # Only add the cell index if it doesn't follow another cell.
+    #
     push @attribs, "ss:Index",   $col +1 if $col != $self->{prev_col} +1;
 
+
+    ###########################################################################
+    #
+    # Check for merged cells.
+    #
     if (exists $self->{_merge}->{$row}   and
         exists $self->{_merge}->{$row}->{$col})
     {
@@ -2762,16 +2853,31 @@ sub _write_xml_cell {
         push @attribs, "ss:MergeDown",   $down   if $down;
 
         # Fill the merge range to ensure that it doesn't contain any data types.
-        # This.also ensure that $self->{prev_col} is incremented correctly.
         for my $m_row (0 .. $down) {
             for my $m_col (0 .. $across) {
                 next if $m_row == 0 and $m_col == 0;
-                my $type = $self->{_datatypes}->{Merge};
-                $self->{_table}->[$row +$m_row ]->[$col +$m_col] = [$type];
+                $self->{_table}->[$row +$m_row ]->[$col +$m_col] = undef;
              }
         }
+
+        # Fill the last col so that $self->{prev_col} is incremented correctly.
+        my $type = $self->{_datatypes}->{Merge};
+        $self->{_table}->[$row]->[$col +$across] = [$type];
     }
 
+
+    ###########################################################################
+    #
+    # Check for cell comments.
+    #
+    if (exists $self->{_comment}->{$row}   and
+        exists $self->{_comment}->{$row}->{$col})
+    {
+        $comment = $self->{_comment}->{$row}->{$col};
+    }
+
+
+    # Add the format attribute.
     push @attribs, "ss:StyleID", "s" . $format if $format;
 
 
@@ -2791,23 +2897,30 @@ sub _write_xml_cell {
     }
 
 
-
+    ###########################################################################
     #
-    #
+    # Write the <Cell> data for various data types.
     #
 
     # Write the Number data element
     if ($datatype == $self->{_datatypes}->{Number}) {
         $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
         $self->_write_xml_cell_data('Number', $data);
+        $self->_write_xml_cell_comment($comment) if $comment;
         $self->_write_xml_end_tag(4, 1, 0, 'Cell');
     }
 
 
     # Write the String data element
     elsif ($datatype == $self->{_datatypes}->{String}) {
+        my $html = $self->{_table}->[$row]->[$col]->[3];
+
         $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
-        $self->_write_xml_cell_data('String', $data);
+
+        if ($html){$self->_write_xml_html_string($data);}
+        else      {$self->_write_xml_cell_data('String', $data);}
+
+        $self->_write_xml_cell_comment($comment) if $comment;
         $self->_write_xml_end_tag(4, 1, 0, 'Cell');
     }
 
@@ -2816,13 +2929,21 @@ sub _write_xml_cell {
     elsif ($datatype == $self->{_datatypes}->{DateTime}) {
         $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
         $self->_write_xml_cell_data('DateTime', $data);
+        $self->_write_xml_cell_comment($comment) if $comment;
         $self->_write_xml_end_tag(4, 1, 0, 'Cell');
     }
 
 
     # Write an empty Data element for a formula data
     elsif ($datatype == $self->{_datatypes}->{Formula}) {
-        $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
+        if ($comment) {
+            $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
+            $self->_write_xml_cell_comment($comment);
+            $self->_write_xml_end_tag(4, 1, 0, 'Cell');
+        }
+        else {
+            $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
+        }
     }
 
 
@@ -2851,7 +2972,7 @@ sub _write_xml_cell {
             $type = 'String';
         }
 
-
+        $self->_write_xml_cell_comment($comment) if $comment;
         $self->_write_xml_cell_data($type, $data);
         $self->_write_xml_end_tag(4, 1, 0, 'Cell');
     }
@@ -2859,11 +2980,30 @@ sub _write_xml_cell {
 
     # Write an empty Data element for a blank cell
     elsif ($datatype == $self->{_datatypes}->{Blank}) {
-        $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
+        if ($comment) {
+            $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
+            $self->_write_xml_cell_comment($comment);
+            $self->_write_xml_end_tag(4, 1, 0, 'Cell');
+        }
+        else {
+            $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
+        }
+    }
+
+    # Write an empty Data element for an empty cell with a comment;
+    elsif ($datatype == $self->{_datatypes}->{Comment}) {
+        if ($comment) {
+            $self->_write_xml_start_tag(4, 1, 0, 'Cell', @attribs);
+            $self->_write_xml_cell_comment($comment);
+            $self->_write_xml_end_tag(4, 1, 0, 'Cell');
+        }
+        else {
+            $self->_write_xml_element(4, 1, 0, 'Cell', @attribs);
+        }
     }
 
     # Ignore merge cells
-    elsif ($datatype == $self->{_datatypes}->{Blank}) {
+    elsif ($datatype == $self->{_datatypes}->{Merge}) {
         # Do nothing.
     }
 
@@ -2877,7 +3017,7 @@ sub _write_xml_cell {
 #
 # _write_xml_cell_data()
 #
-# Write a Data element start tag.
+# Write a generic Data element.
 #
 sub _write_xml_cell_data {
 
@@ -2892,6 +3032,57 @@ sub _write_xml_cell_data {
     else                       {$self->_write_xml_content($data)          }
 
     $self->_write_xml_end_tag(0, 1, 0, 'Data');
+}
+
+
+###############################################################################
+#
+# _write_xml_html_string()
+#
+# Write a string Data element with html text.
+#
+sub _write_xml_html_string {
+
+    my $self  = shift;
+    my $data  = $_[0];
+
+    $self->_write_xml_start_tag(5, 0, 0, 'ss:Data',
+                                         'ss:Type',
+                                         'String',
+                                         'xmlns',
+                                         'http://www.w3.org/TR/REC-html40'
+                                         );
+
+    $self->_write_xml_unencoded_content($data);
+
+    $self->_write_xml_end_tag(0, 1, 0, 'ss:Data');
+}
+
+
+###############################################################################
+#
+# _write_xml_cell_comment()
+#
+# Write a cell Comment element.
+#
+sub _write_xml_cell_comment {
+
+    my $self    = shift;
+    my $comment = $_[0];
+
+    $self->_write_xml_start_tag(5, 1, 0, 'Comment');
+
+    $self->_write_xml_start_tag(6, 0, 0, 'ss:Data',
+                                         'xmlns',
+                                         'http://www.w3.org/TR/REC-html40'
+                                         );
+
+    $self->_write_xml_unencoded_content($comment);
+
+    $self->_write_xml_end_tag(0, 1, 0, 'ss:Data');
+
+    $self->_write_xml_end_tag(5, 1, 0, 'Comment');
+
 }
 
 
@@ -3170,7 +3361,8 @@ sub _write_worksheet_options {
         $self->_write_xml_end_tag  (3, 1, 0, 'Print');
     }
 
-
+    $self->_write_xml_element(3,1,0,'DoNotDisplayGridlines')
+                             if $self->{_screen_gridlines} == 0;
 
     $self->_write_xml_end_tag(2, 1, 0, 'WorksheetOptions');
 }
@@ -3246,6 +3438,8 @@ sub _options_changed {
     }
 
 
+    $options_changed = 1 if $self->{_screen_gridlines} == 0;
+
     return ($options_changed, $print_changed, $setup_changed);
 }
 
@@ -3282,7 +3476,7 @@ Software programs that read or write files that comply with the Microsoft specif
 
 =head1 COPYRIGHT
 
-© MM-MMIV, John McNamara.
+© MM-MMV, John McNamara.
 
 All Rights Reserved. This module is free software. It may be used, redistributed and/or modified under the same terms as Perl itself.
 

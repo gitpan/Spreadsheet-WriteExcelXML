@@ -6,7 +6,7 @@ package Spreadsheet::WriteExcelXML;
 #
 # Spreadsheet::WriteExcel - Write to a cross-platform Excel binary file.
 #
-# Copyright 2000-2004, John McNamara, jmcnamara@cpan.org
+# Copyright 2000-2005, John McNamara, jmcnamara@cpan.org
 #
 # Documentation after __END__
 #
@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.08'; # Resigned to resignation.
+$VERSION = '0.09'; # Liquorice Allsorts.
 
 
 
@@ -54,7 +54,7 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.08 of Spreadsheet::WriteExcelXML, released December 1, 2004.
+This document refers to version 0.09 of Spreadsheet::WriteExcelXML, released April 23, 2004.
 
 
 
@@ -3386,9 +3386,11 @@ different features and options of the module.
     cgi.pl                  A simple CGI program.
     chess.pl                An example of formatting using properties.
     colors.pl               Demo of the colour palette and named colours.
+    comments.pl             Example of adding comments to cells.
     copyformat.pl           Example of copying a cell format.
     diag_border.pl          A simple example of diagonal cell borders.
     filehandle.pl           Examples of working with filehandles.
+    html_string             Example of multiple cell formats via html.
     hyperlink1.pl           Shows how to create web hyperlinks.
     hyperlink2.pl           Examples of internal and external hyperlinks.
     indent.pl               An example of cell indentation.
@@ -3412,6 +3414,7 @@ different features and options of the module.
     write_handler2.pl       Example of extending the write() method. Step 2.
     write_handler3.pl       Example of extending the write() method. Step 3.
     write_handler4.pl       Example of extending the write() method. Step 4.
+
 
 
     Unicode
@@ -3664,8 +3667,6 @@ The roadmap is as follows:
 
 =back
 
-You can keep up to date with future releases by registering as a user with Freshmeat http://freshmeat.net/ and subscribing to Spreadsheet::WriteExcel at the project page http://freshmeat.net/projects/writeexcel/ You will then receive mailed updates when a new version is released. Alternatively you can keep an eye on news://comp.lang.perl.announce
-
 Also, here are some requested features that cannot be added because they aren't included in Excel XML specification:
 
 =over 4
@@ -3675,6 +3676,14 @@ Also, here are some requested features that cannot be added because they aren't 
 =item * Macros.
 
 =back
+
+
+
+
+=head1 MAILING LIST
+
+There is a Google group for discussing and asking questions about Spreadsheet::WriteExcel:  http://groups-beta.google.com/group/spreadsheet-writeexcel/
+
 
 
 
@@ -3691,12 +3700,26 @@ Spreadsheet::ParseExcel: http://search.cpan.org/search?dist=Spreadsheet-ParseExc
 
 John McNamara jmcnamara@cpan.org
 
-    This shaking keeps me steady. I should know.
-    What falls away is always. And is near.
-    I wake to sleep, and take my waking slow.
-    I learn by going where I have to go.
+    Come and have a look, beside me,
+    A fine line of tears.
+    Part company.
 
-        -- Theodore Roethke
+    That's her handwriting, that's the way she writes,
+    From the first letter I got to this, a Bill of Rights.
+    Part company.
+
+    And what will I miss? Her cruelty, her unfaithfulness,
+    Her fun, her love, her kiss.
+    Part company.
+
+    That's her handwriting, that's the way she writes
+    Like mud in the September rain it comes, back to me.
+
+    And part, yes part, I said part,
+    Part company, made her men disappear.
+    Cut my swathe and I spread my fear.
+
+        -- Robert Forster
 
 
 
@@ -3711,7 +3734,7 @@ Software programs that read or write files that comply with the Microsoft specif
 
 =head1 COPYRIGHT
 
-© MM-MMIV, John McNamara.
+© MM-MMV, John McNamara.
 
 All Rights Reserved. This module is free software. It may be used, redistributed and/or modified under the same terms as Perl itself.
 

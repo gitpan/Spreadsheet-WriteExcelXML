@@ -63,7 +63,7 @@ $workbook->close();
 open XML, $test_file or die "Couldn't open $test_file: $!\n";
 my @swex_data = extract_names(*XML);
 close XML;
-unlink $test_file;
+#unlink $test_file;
 
 
 ##############################################################################

@@ -12,7 +12,7 @@
 
 use strict;
 use Spreadsheet::WriteExcelXML;
-use Test::More 'no_plan';
+use Test::More tests => 34;
 
 my @captions;
 
@@ -162,6 +162,13 @@ push @captions, "Testing hide_gridlines. No effect.";
 $worksheet = $workbook->add_worksheet();
 $worksheet->write('A1', $captions[-1]);
 $worksheet->hide_gridlines(1);
+
+
+# Test:
+push @captions, "Testing hide_gridlines. Screen gridlines off.";
+$worksheet = $workbook->add_worksheet();
+$worksheet->write('A1', $captions[-1]);
+$worksheet->hide_gridlines(2);
 
 
 # Test:
@@ -353,6 +360,21 @@ __DATA__
  xmlns:x="urn:schemas-microsoft-com:office:excel"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Version>11.5606</Version>
+ </DocumentProperties>
+ <OfficeDocumentSettings xmlns="urn:schemas-microsoft-com:office:office">
+  <DownloadComponents/>
+  <LocationOfComponents HRef="file:///D:\"/>
+ </OfficeDocumentSettings>
+ <ExcelWorkbook xmlns="urn:schemas-microsoft-com:office:excel">
+  <WindowHeight>10005</WindowHeight>
+  <WindowWidth>10005</WindowWidth>
+  <WindowTopX>120</WindowTopX>
+  <WindowTopY>135</WindowTopY>
+  <ProtectStructure>False</ProtectStructure>
+  <ProtectWindows>False</ProtectWindows>
+ </ExcelWorkbook>
  <Styles>
   <Style ss:ID="Default" ss:Name="Normal">
    <Alignment ss:Vertical="Bottom"/>
@@ -655,15 +677,11 @@ __DATA__
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
-    <Cell><Data ss:Type="String">Testing print_gridlines.</Data></Cell>
+    <Cell><Data ss:Type="String">Testing hide_gridlines. Screen gridlines off.</Data></Cell>
    </Row>
   </Table>
   <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
-   <Print>
-    <ValidPrinterInfo/>
-    <VerticalResolution>0</VerticalResolution>
-    <Gridlines/>
-   </Print>
+   <DoNotDisplayGridlines/>
    <ProtectObjects>False</ProtectObjects>
    <ProtectScenarios>False</ProtectScenarios>
   </WorksheetOptions>
@@ -689,6 +707,23 @@ __DATA__
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
+    <Cell><Data ss:Type="String">Testing print_gridlines.</Data></Cell>
+   </Row>
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <Print>
+    <ValidPrinterInfo/>
+    <VerticalResolution>0</VerticalResolution>
+    <Gridlines/>
+   </Print>
+   <ProtectObjects>False</ProtectObjects>
+   <ProtectScenarios>False</ProtectScenarios>
+  </WorksheetOptions>
+ </Worksheet>
+ <Worksheet ss:Name="Sheet23">
+  <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
+   x:FullRows="1">
+   <Row>
     <Cell><Data ss:Type="String">Testing print_gridlines. No effect.</Data></Cell>
    </Row>
   </Table>
@@ -697,7 +732,7 @@ __DATA__
    <ProtectScenarios>False</ProtectScenarios>
   </WorksheetOptions>
  </Worksheet>
- <Worksheet ss:Name="Sheet23">
+ <Worksheet ss:Name="Sheet24">
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
@@ -710,19 +745,6 @@ __DATA__
     <VerticalResolution>0</VerticalResolution>
     <RowColHeadings/>
    </Print>
-   <ProtectObjects>False</ProtectObjects>
-   <ProtectScenarios>False</ProtectScenarios>
-  </WorksheetOptions>
- </Worksheet>
- <Worksheet ss:Name="Sheet24">
-  <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
-   x:FullRows="1">
-   <Row>
-    <Cell><Data ss:Type="String">Testing fit_to_pages. 1 x 1.</Data></Cell>
-   </Row>
-  </Table>
-  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
-   <FitToPage/>
    <ProtectObjects>False</ProtectObjects>
    <ProtectScenarios>False</ProtectScenarios>
   </WorksheetOptions>
@@ -744,6 +766,19 @@ __DATA__
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
+    <Cell><Data ss:Type="String">Testing fit_to_pages. 1 x 1.</Data></Cell>
+   </Row>
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <FitToPage/>
+   <ProtectObjects>False</ProtectObjects>
+   <ProtectScenarios>False</ProtectScenarios>
+  </WorksheetOptions>
+ </Worksheet>
+ <Worksheet ss:Name="Sheet27">
+  <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
+   x:FullRows="1">
+   <Row>
     <Cell><Data ss:Type="String">Testing fit_to_pages. 2 x 1.</Data></Cell>
    </Row>
   </Table>
@@ -758,7 +793,7 @@ __DATA__
    <ProtectScenarios>False</ProtectScenarios>
   </WorksheetOptions>
  </Worksheet>
- <Worksheet ss:Name="Sheet27">
+ <Worksheet ss:Name="Sheet28">
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
@@ -777,7 +812,7 @@ __DATA__
    <ProtectScenarios>False</ProtectScenarios>
   </WorksheetOptions>
  </Worksheet>
- <Worksheet ss:Name="Sheet28">
+ <Worksheet ss:Name="Sheet29">
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
@@ -794,7 +829,7 @@ __DATA__
    <ProtectScenarios>False</ProtectScenarios>
   </WorksheetOptions>
  </Worksheet>
- <Worksheet ss:Name="Sheet29">
+ <Worksheet ss:Name="Sheet30">
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
@@ -817,7 +852,7 @@ __DATA__
    </RowBreaks>
   </PageBreaks>
  </Worksheet>
- <Worksheet ss:Name="Sheet30">
+ <Worksheet ss:Name="Sheet31">
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
@@ -846,7 +881,7 @@ __DATA__
    </RowBreaks>
   </PageBreaks>
  </Worksheet>
- <Worksheet ss:Name="Sheet31">
+ <Worksheet ss:Name="Sheet32">
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
@@ -869,7 +904,7 @@ __DATA__
    </ColBreaks>
   </PageBreaks>
  </Worksheet>
- <Worksheet ss:Name="Sheet32">
+ <Worksheet ss:Name="Sheet33">
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>
@@ -898,7 +933,7 @@ __DATA__
    </ColBreaks>
   </PageBreaks>
  </Worksheet>
- <Worksheet ss:Name="Sheet33">
+ <Worksheet ss:Name="Sheet34">
   <Table ss:ExpandedColumnCount="1" ss:ExpandedRowCount="1" x:FullColumns="1"
    x:FullRows="1">
    <Row>

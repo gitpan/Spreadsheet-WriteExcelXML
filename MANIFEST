@@ -26,6 +26,8 @@ t/33_array_formula.t
 t/34_page_setup.t
 t/35_print_area.t
 t/36_print_repeat.t
+t/37_comments.t
+t/38_html_strings.t
 
 examples/README
 examples/array_formula.pl
@@ -33,6 +35,7 @@ examples/bug_report.pl
 examples/cgi.pl
 examples/chess.pl
 examples/colors.pl
+examples/comments.pl
 examples/convertA1.pl
 examples/copyformat.pl
 examples/csv2xls.pl
@@ -41,6 +44,7 @@ examples/demo.pl
 examples/diag_border.pl
 examples/filehandle.pl
 examples/formats.pl
+examples/html_string.pl
 examples/headers.pl
 examples/hyperlink1.pl
 examples/hyperlink2.pl

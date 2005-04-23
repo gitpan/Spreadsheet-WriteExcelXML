@@ -12,7 +12,7 @@
 
 use strict;
 use Spreadsheet::WriteExcelXML;
-use Test::More tests => 12;
+use Test::More tests => 25;
 
 
 
@@ -73,6 +73,31 @@ $worksheet->merge_range(15, 6, 14, 4, $text++, $format); # M09
 #
 $worksheet->write('D9', 'Inside range M07', $format);
 
+
+#
+# Tests for merges followed by merges (2)
+#
+$worksheet->merge_range('B18:B21', $text++, $format); # M10
+$worksheet->merge_range('C18:D19', $text++, $format); # M11
+$worksheet->merge_range('C20:D21', $text++, $format); # M12
+
+#
+# Tests for merges followed by merges (2)
+#
+$worksheet->merge_range('B23:B26', $text++, $format); # M13
+$worksheet->merge_range('C23:D23', $text++, $format); # M14
+$worksheet->merge_range('C24:D24', $text++, $format); # M15
+$worksheet->merge_range('C25:D25', $text++, $format); # M16
+$worksheet->merge_range('C26:D26', $text++, $format); # M17
+
+#
+# Tests for merges followed by text
+#
+$worksheet->merge_range('B28:B31', $text++, $format); # M18
+$worksheet->write      ('C28',     $text++, $format); # M19
+$worksheet->write      ('C29',     $text++, $format); # M20
+$worksheet->write      ('C30',     $text++, $format); # M21
+$worksheet->write      ('C31',     $text++, $format); # M22
 
 
 $workbook->close();
@@ -152,28 +177,12 @@ sub extract_cells {
 # The merge styles have been renamed from "m\d+" to "s21".
 __DATA__
 <?xml version="1.0"?>
-<?xml version="1.0"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:o="urn:schemas-microsoft-com:office:office"
  xmlns:x="urn:schemas-microsoft-com:office:excel"
  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:html="http://www.w3.org/TR/REC-html40">
- <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
-  <Version>11.5606</Version>
- </DocumentProperties>
- <OfficeDocumentSettings xmlns="urn:schemas-microsoft-com:office:office">
-  <DownloadComponents/>
-  <LocationOfComponents HRef="file:///D:\"/>
- </OfficeDocumentSettings>
- <ExcelWorkbook xmlns="urn:schemas-microsoft-com:office:excel">
-  <WindowHeight>10005</WindowHeight>
-  <WindowWidth>10005</WindowWidth>
-  <WindowTopX>120</WindowTopX>
-  <WindowTopY>135</WindowTopY>
-  <ProtectStructure>False</ProtectStructure>
-  <ProtectWindows>False</ProtectWindows>
- </ExcelWorkbook>
  <Styles>
   <Style ss:ID="Default" ss:Name="Normal">
    <Alignment ss:Vertical="Bottom"/>
@@ -192,164 +201,90 @@ __DATA__
     <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
    </Borders>
    <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="s21">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Left" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Right" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
-   </Borders>
-   <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="s21">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Left" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Right" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
-   </Borders>
-   <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="s21">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Left" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Right" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
-   </Borders>
-   <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="s21">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Left" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Right" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
-   </Borders>
-   <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="s21">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Left" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Right" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
-   </Borders>
-   <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="s21">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Left" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Right" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
-   </Borders>
-   <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="s21">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Left" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Right" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
-   </Borders>
-   <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
-  </Style>
-  <Style ss:ID="s21">
-   <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
-   <Borders>
-    <Border ss:Position="Bottom" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Left" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Right" ss:LineStyle="Double" ss:Weight="3"/>
-    <Border ss:Position="Top" ss:LineStyle="Double" ss:Weight="3"/>
-   </Borders>
-   <Font ss:Color="#FF0000" ss:Bold="1"/>
-   <Interior/>
-   <NumberFormat/>
-   <Protection/>
   </Style>
  </Styles>
  <Worksheet ss:Name="Sheet1">
-  <Table ss:ExpandedColumnCount="15" ss:ExpandedRowCount="17" x:FullColumns="1"
+  <Table ss:ExpandedColumnCount="11" ss:ExpandedRowCount="31" x:FullColumns="1"
    x:FullRows="1">
-   <Column ss:Index="13" ss:AutoFitWidth="0" ss:Width="27" ss:Span="1"/>
-   <Column ss:Index="15" ss:AutoFitWidth="0" ss:Width="64.5"/>
-   <Row ss:AutoFitHeight="0" ss:Height="14.25">
+   <Row>
     <Cell ss:MergeAcross="3" ss:StyleID="s21"><Data ss:Type="String">M01</Data></Cell>
-    <Cell ss:Index="6" ss:MergeDown="3" ss:StyleID="s21"><Data
-      ss:Type="String">M02</Data></Cell>
+    <Cell ss:Index="6" ss:MergeDown="3" ss:StyleID="s21"><Data ss:Type="String">M02</Data></Cell>
     <Cell ss:Index="8" ss:MergeAcross="3" ss:MergeDown="3" ss:StyleID="s21"><Data
       ss:Type="String">M03</Data></Cell>
    </Row>
-   <Row ss:AutoFitHeight="0" ss:Height="13.5"/>
-   <Row ss:Index="4" ss:AutoFitHeight="0" ss:Height="13.5"/>
-   <Row ss:AutoFitHeight="0" ss:Height="14.25"/>
-   <Row ss:AutoFitHeight="0" ss:Height="14.25">
+   <Row ss:Index="6">
     <Cell ss:MergeAcross="3" ss:StyleID="s21"><Data ss:Type="String">M04</Data></Cell>
     <Cell ss:MergeDown="1" ss:StyleID="s21"><Data ss:Type="String">M05</Data></Cell>
    </Row>
-   <Row ss:AutoFitHeight="0" ss:Height="14.25">
-    <Cell ss:MergeAcross="1" ss:StyleID="s21"><Data ss:Type="String">M06</Data></Cell>
+   <Row>
+    <Cell ss:Index="6" ss:MergeAcross="1" ss:StyleID="s21"><Data ss:Type="String">M06</Data></Cell>
    </Row>
-   <Row ss:AutoFitHeight="0" ss:Height="14.25"/>
-   <Row ss:AutoFitHeight="0" ss:Height="14.25">
+   <Row ss:Index="9">
     <Cell ss:MergeAcross="3" ss:StyleID="s21"><Data ss:Type="String">M07</Data></Cell>
     <Cell><Data ss:Type="String">test</Data></Cell>
    </Row>
-   <Row ss:AutoFitHeight="0" ss:Height="13.5">
+   <Row>
     <Cell><Data ss:Type="Number">10</Data></Cell>
    </Row>
-   <Row ss:AutoFitHeight="0" ss:Height="13.5"/>
-   <Row ss:AutoFitHeight="0" ss:Height="13.5">
+   <Row ss:Index="12">
     <Cell ss:MergeAcross="3" ss:MergeDown="2" ss:StyleID="s21"><Data
       ss:Type="String">M08</Data></Cell>
    </Row>
-   <Row ss:Index="14" ss:AutoFitHeight="0" ss:Height="13.5"/>
-   <Row ss:AutoFitHeight="0" ss:Height="13.5">
+   <Row ss:Index="15">
     <Cell ss:Index="5" ss:MergeAcross="2" ss:MergeDown="1" ss:StyleID="s21"><Data
       ss:Type="String">M09</Data></Cell>
    </Row>
-   <Row ss:AutoFitHeight="0" ss:Height="13.5" ss:Span="1"/>
+   <Row ss:Index="18">
+    <Cell ss:Index="2" ss:MergeDown="3" ss:StyleID="s21"><Data ss:Type="String">M10</Data></Cell>
+    <Cell ss:MergeAcross="1" ss:MergeDown="1" ss:StyleID="s21"><Data
+      ss:Type="String">M11</Data></Cell>
+   </Row>
+   <Row ss:Index="20">
+    <Cell ss:Index="3" ss:MergeAcross="1" ss:MergeDown="1" ss:StyleID="s21"><Data
+      ss:Type="String">M12</Data></Cell>
+   </Row>
+   <Row ss:Index="23">
+    <Cell ss:Index="2" ss:MergeDown="3" ss:StyleID="s21"><Data ss:Type="String">M13</Data></Cell>
+    <Cell ss:MergeAcross="1" ss:StyleID="s21"><Data ss:Type="String">M14</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="3" ss:MergeAcross="1" ss:StyleID="s21"><Data ss:Type="String">M15</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="3" ss:MergeAcross="1" ss:StyleID="s21"><Data ss:Type="String">M16</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="3" ss:MergeAcross="1" ss:StyleID="s21"><Data ss:Type="String">M17</Data></Cell>
+   </Row>
+   <Row ss:Index="28">
+    <Cell ss:Index="2" ss:MergeDown="3" ss:StyleID="s21"><Data ss:Type="String">M18</Data></Cell>
+    <Cell ss:StyleID="s21"><Data ss:Type="String">M19</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="3" ss:StyleID="s21"><Data ss:Type="String">M20</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="3" ss:StyleID="s21"><Data ss:Type="String">M21</Data></Cell>
+   </Row>
+   <Row>
+    <Cell ss:Index="3" ss:StyleID="s21"><Data ss:Type="String">M22</Data></Cell>
+   </Row>
   </Table>
   <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <Print>
+    <FitWidth>0</FitWidth>
+    <FitHeight>0</FitHeight>
+    <ValidPrinterInfo/>
+    <PaperSizeIndex>0</PaperSizeIndex>
+    <HorizontalResolution>600</HorizontalResolution>
+    <VerticalResolution>600</VerticalResolution>
+    <Gridlines/>
+   </Print>
    <Selected/>
    <Panes>
     <Pane>
      <Number>3</Number>
-     <ActiveRow>20</ActiveRow>
-     <ActiveCol>1</ActiveCol>
+     <RangeSelection>R1C1:R1C4</RangeSelection>
     </Pane>
    </Panes>
    <ProtectObjects>False</ProtectObjects>

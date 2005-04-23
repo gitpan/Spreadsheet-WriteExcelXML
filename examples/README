@@ -19,9 +19,11 @@ array_formula.pl        Examples of how to write array formulas.
 cgi.pl                  A simple CGI program.
 chess.pl                An example of formatting using properties.
 colors.pl               Demo of the colour palette and named colours.
+comments.pl             Example of adding comments to cells.
 copyformat.pl           Example of copying a cell format.
 diag_border.pl          A simple example of diagonal cell borders.
 filehandle.pl           Examples of working with filehandles.
+html_string             Example of multiple cell formats via html.
 hyperlink1.pl           Shows how to create web hyperlinks.
 hyperlink2.pl           Examples of internal and external hyperlinks.
 indent.pl               An example of cell indentation.

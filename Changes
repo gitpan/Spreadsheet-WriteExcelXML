@@ -1,5 +1,21 @@
 Revision history for Perl module Spreadsheet::WriteExcelXML.
 
+0.09 April 23 2005
+
+    + Added write_html_string() method to allow multiple formats to
+      be added to a cell via Html formatting.
+      Added html_string.pl example and test case.
+
+    + Added write_comment() method to allow cell comments.
+      Added comment.pl example and test case.
+
+    ! Fixed bug with contiguous merged ranges. Thanks Mike Trotman.
+      Updated test 32_merge.t.
+
+    ! Fixed bug where screen gridlines couldn't be turned off.
+      Thanks Mike Trotman.
+      Updated test 34_page_setup.t.
+
 
 0.08 December 1 2004
 
