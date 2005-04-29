@@ -21,7 +21,7 @@ use Spreadsheet::WriteExcelXML::Workbook;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::Workbook Exporter);
 
-$VERSION = '0.09'; # Liquorice Allsorts.
+$VERSION = '0.10'; # Bachelor Kisses.
 
 
 
@@ -54,7 +54,7 @@ Spreadsheet::WriteExcelXML - Create an Excel file in XML format.
 
 =head1 VERSION
 
-This document refers to version 0.09 of Spreadsheet::WriteExcelXML, released April 23, 2004.
+This document refers to version 0.10 of Spreadsheet::WriteExcelXML, released April 29, 2004.
 
 
 
@@ -483,6 +483,8 @@ The following methods are available through a new worksheet:
     thaw_panes() *
     merge_range()
     set_zoom() *
+    autofilter()
+    filter_column()
 
     *   Not yet supported. See Spreadsheet::WriteExcel.
     **  Not required by Spreadsheet::WriteExcelXML.
@@ -1473,6 +1475,82 @@ Set the worksheet zoom factor in the range C<10 E<lt>= $scale E<lt>= 400>:
 The default zoom factor is 100. You cannot zoom to "Selection" because it is calculated by Excel at run-time.
 
 Note, C<set_zoom()> does not affect the scale of the printed page. For that you should use C<set_print_scale()>.
+
+
+
+
+=head2 autofilter($first_row, $first_col, $last_row, $last_col)
+
+This method allows an autofilter to be added to a worksheet. An autofilter is a way of adding drop down lists to the headers of a 2D range of worksheet data. This is turn allow users to filter the data based on simple criteria so that some data is highlighted and some is hidden.
+
+To add an autofilter to a worksheet:
+
+    $worksheet->autofilter(0, 0, 10, 3);
+    $worksheet->autofilter('A1:D11');    # Same as above in A1 notation.
+
+Filter conditions can be applied using the C<filter_column()> method.
+
+See the C<autofilter.pl> program in the examples directory of the distro for a more detailed example.
+
+
+
+
+=head2 filter_column($column, $expression)
+
+
+The C<filter_column> method can be used to filter columns in a autofilter range based on simple conditions.
+
+The conditions for the filter are specified using simple expressions:
+
+    $worksheet->filter_column('A', 'x > 2000 and x < 5000');
+
+The C<$column> parameter can either be a zero indexed column number or a string column name.
+
+The following operators are available:
+
+    Operator        Synonyms
+       ==           =   eq  =~
+       !=           <>  ne  !=
+       >
+       <
+       >=
+       <=
+
+       and          &&
+       or           ||
+
+The operator synonyms are just syntactic sugar to make you more comfortable using the expressions. It is important to remember that the expressions will be interpreted by Excel and not by perl.
+
+An expression can comprise a single statement or two statements separated by the C<and> and C<or> operators. For example:
+
+    'x <  2000'
+    'x >  2000'
+    'x == 2000'
+    'x >  2000 and x <  5000'
+    'x == 2000 or  x == 5000'
+
+Excel also allows some simple string matching operations:
+
+    'x =~ b*'   # begins with b
+    'x !~ b*'   # doesn't begin with b
+    'x =~ *b'   # ends with b
+    'x !~ *b'   # doesn't end with b
+    'x =~ *b*'  # contains b
+    'x !~ *b*'  # doesn't contains b
+
+You can also use C<*> to match any character or number and C<?> to match any single character or number. No other regular expression quantifier is supported by Excel's filters. (Remember again that the expression is being interpreted by Excel and not by perl).
+
+The placeholder variable C<x> in the above examples can be replaced by any simple string. The actual placeholder name is ignored internally so the following are all equivalent:
+
+    'x     < 2000'
+    'col   < 2000'
+    'Price < 2000'
+
+If you have problems with an expression, use Excel to create the condition that you want, save the file in XML format and examine the output.
+
+Also, note that a filter condition can only be applied to a column in a range specified by the C<autofilter()> Worksheet method.
+
+See the C<autofilter.pl> program in the examples directory of the distro for a more detailed example.
 
 
 
@@ -3382,6 +3460,7 @@ different features and options of the module.
 
     Advanced
     ========
+    autofilter.pl           Examples of worksheet autofilters.
     array_formula.pl        Examples of how to write array formulas.
     cgi.pl                  A simple CGI program.
     chess.pl                An example of formatting using properties.
@@ -3665,6 +3744,8 @@ The roadmap is as follows:
 
 =item * Catch up with Spreadsheet-WriteExcel.
 
+=item * Add some other autofilter options.
+
 =back
 
 Also, here are some requested features that cannot be added because they aren't included in Excel XML specification:
@@ -3700,27 +3781,19 @@ Spreadsheet::ParseExcel: http://search.cpan.org/search?dist=Spreadsheet-ParseExc
 
 John McNamara jmcnamara@cpan.org
 
-    Come and have a look, beside me,
-    A fine line of tears.
-    Part company.
+    Hey wait, oh please wait,
+    Don't rush off, you won't be late.
+    Oh wait, yes, he'll wait,
+    The engine's running
+    At the gate.
 
-    That's her handwriting, that's the way she writes,
-    From the first letter I got to this, a Bill of Rights.
-    Part company.
+    Don't believe what you heard,
+    Faithful's not a bad word.
 
-    And what will I miss? Her cruelty, her unfaithfulness,
-    Her fun, her love, her kiss.
-    Part company.
+    Oh, won't you save these bachelor kisses now,
+    They're for your brow.
 
-    That's her handwriting, that's the way she writes
-    Like mud in the September rain it comes, back to me.
-
-    And part, yes part, I said part,
-    Part company, made her men disappear.
-    Cut my swathe and I spread my fear.
-
-        -- Robert Forster
-
+        -- Grant McLennan
 
 
 =head1 PATENT LICENSE

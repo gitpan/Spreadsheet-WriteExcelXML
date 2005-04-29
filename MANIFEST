@@ -11,6 +11,7 @@ lib/Spreadsheet/WriteExcelXML/Workbook.pm
 lib/Spreadsheet/WriteExcelXML/Worksheet.pm
 lib/Spreadsheet/WriteExcelXML/XMLwriter.pm
 
+t/00_regression.t
 t/01_xml_writer.t
 t/02_format.t
 t/03_convert_formula.t
@@ -28,8 +29,11 @@ t/35_print_area.t
 t/36_print_repeat.t
 t/37_comments.t
 t/38_html_strings.t
+t/40_autofilter01.t
+t/40_autofilter02.t
 
 examples/README
+examples/autofilter.pl
 examples/array_formula.pl
 examples/bug_report.pl
 examples/cgi.pl

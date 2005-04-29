@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter);
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 ###############################################################################
 #
@@ -127,6 +127,13 @@ sub new {
     $self->{_merge}             = {};
     $self->{_comment}           = {};
 
+    $self->{_autofilter}        = '';
+    $self->{_filter_on}         = 0;
+    $self->{_filter_range}      = [];
+    $self->{_filter_cols}       = {};
+
+
+
     $self->{_datatypes}         = {String   => 1,
                                    Number   => 2,
                                    DateTime => 3,
@@ -183,6 +190,9 @@ sub _close {
 
     # Store horizontal and vertical pagebreaks.
     $self->_store_pagebreaks();
+
+    # Store autofilter information.
+    $self->_write_autofilter();
 
     # Close Workbook tag. WriteExcel _store_eof().
     $self->_write_xml_end_tag(1, 1, 1, 'Worksheet');
@@ -624,7 +634,8 @@ sub repeat_rows {
     }
 
     # Build up the print area range "=Sheet2!R1:R2"
-    $area = "'" . $self->{_name} . "'!". $area;
+    my $sheetname = $self->_quote_sheetname($self->{_name});
+    $area         = $sheetname . "!". $area;
 
 
     $self->{_repeat_rows} =  $area;
@@ -665,7 +676,8 @@ sub repeat_columns {
     }
 
     # Build up the print area range "=Sheet2!C1:C2"
-    $area = "'" . $self->{_name} . "'!". $area;
+    my $sheetname = $self->_quote_sheetname($self->{_name});
+    $area         = $sheetname . "!". $area;
 
 
     $self->{_repeat_cols} =  $area;
@@ -699,9 +711,154 @@ sub print_area {
         $col2 == 2**8  -1
     ){return}
 
-    my $area;
+    # Build up the print area range "=Sheet2!R1C1:R2C1"
+    my $area = $self->_convert_name_area($row1, $col1, $row2, $col2);
+
+    $self->{_names}->{'Print_Area'} = $area;
+}
+
+
+###############################################################################
+#
+# autofilter($first_row, $first_col, $last_row, $last_col)
+#
+# Set the autofilter area in the worksheet.
+#
+sub autofilter {
+
+    my $self = shift;
+
+    # Check for a cell reference in A1 notation and substitute row and column
+    if ($_[0] =~ /^\D/) {
+        @_ = $self->_substitute_cellref(@_);
+    }
+
+    return if @_ != 4; # Require 4 parameters
+
+    my ($row1, $col1, $row2, $col2) = @_;
+
+
+    # Build up the print area range "=Sheet2!R1C1:R2C1"
+    my $area = $self->_convert_name_area($row1, $col1, $row2, $col2);
+
+
+    # Store the filter as a named range
+    $self->{_names}->{'_FilterDatabase'} = $area;
+
+    # Store the <Autofilter> information
+    $area =~ s/[^!]+!//; # Remove sheet name
+    $self->{_autofilter}   = $area;
+    $self->{_filter_range} = [$col1, $col2];
+}
+
+
+###############################################################################
+#
+# filter_column($column, $criteria, ...)
+#
+# Set the column filter criteria.
+#
+sub filter_column {
+
+    my $self        = shift;
+    my $col         = $_[0];
+    my $expression  = $_[1];
+
+
+    # Check for a column reference in A1 notation and substitute.
+    if ($col =~ /^\D/) {
+        my %hash;
+        @hash{'A' .. 'IV'} = (0 .. 255);
+
+        croak "Invalid column '$col'" unless exists $hash{$col};
+
+        $col = $hash{$col};
+    }
+
+
+    my ($col_first, $col_last) = @{$self->{_filter_range}};
+
+    # Ignore column if it is outside filter range.
+    return if $col < $col_first or $col > $col_last;
+
+
+    my @tokens = split ' ', $expression;
+
+    croak "Incorrect number of tokens in expression '$expression'"
+          unless (@tokens == 3 or @tokens == 7);
+
+
+    # We create an array slice to extract the operators from the arguments
+    # and another to exclude the column placeholders.
+    #
+    # Index: 0 1 2  3  4 5 6
+    #        x > 2
+    #        x > 2 and x < 6
+
+    my @slice1 = @tokens == 3 ? (1)    : (1,    3,   5   );
+    my @slice2 = @tokens == 3 ? (1, 2) : (1, 2, 3,   5, 6);
+
+
+    my %operators = (
+                        '=='  => 'Equals',
+                        '='   => 'Equals',
+                        '=~'  => 'Equals',
+                        'eq'  => 'Equals',
+
+                        '!='  => 'DoesNotEqual',
+                        '!~'  => 'DoesNotEqual',
+                        'ne'  => 'DoesNotEqual',
+                        '<>'  => 'DoesNotEqual',
+
+                        '>'   => 'GreaterThan',
+                        '>='  => 'GreaterThanOrEqual',
+                        '<'   => 'LessThan',
+                        '<='  => 'LessThanOrEqual',
+
+                        'and' => 'AutoFilterAnd',
+                        'or'  => 'AutoFilterOr',
+                        '&&'  => 'AutoFilterAnd',
+                        '||'  => 'AutoFilterOr',
+                    );
+
+
+    for (@tokens[@slice1]) {
+        if (not exists $operators{$_}) {
+            croak "Unknown operator '$_'";
+        }
+    }
+
+
+    for (@tokens[@slice1]) {
+        for my $key (keys %operators) {
+            s/^\Q$key\E$/$operators{$key}/i;
+        }
+    }
+
+    $self->{_filter_cols}->{$col} = [@tokens[@slice2]];
+    $self->{_filter_on}           = 1;
+}
+
+
+###############################################################################
+#
+# _convert_name_area($first_row, $first_col, $last_row, $last_col)
+#
+# Convert zero indexed rows and columns to the R1C1 range required by worksheet
+# named ranges, eg, "=Sheet2!R1C1:R2C1".
+#
+sub _convert_name_area {
+
+    my $self = shift;
+
+    my $row1    = $_[0];
+    my $col1    = $_[1];
+    my $row2    = $_[2];
+    my $col2    = $_[3];
+
     my $range1 = '';
     my $range2 = '';
+    my $area;
 
 
     # We need to handle some special cases that refer to rows or columns only.
@@ -728,10 +885,11 @@ sub print_area {
     }
 
     # Build up the print area range "=Sheet2!R1C1:R2C1"
-    $area = "='" . $self->{_name} . "'!". $area;
+    my $sheetname = $self->_quote_sheetname($self->{_name});
+    $area = '=' . $sheetname . "!". $area;
 
 
-    $self->{_names}->{'Print_Area'} =  $area;
+    return $area;
 }
 
 
@@ -1177,8 +1335,12 @@ sub write_comment {
 #
 sub _XF {
 
+    # TODO $row and $col aren't actually required in the XML version and
+    # should eventually be removed. They are required in the Biff version
+    # to allow for row and col formats.
+
     my $self   = $_[0];
-    my $row    = $_[1]; # TODO remove
+    my $row    = $_[1];
     my $col    = $_[2];
     my $format = $_[3];
 
@@ -1788,8 +1950,9 @@ sub write_url_range {
 #
 # write_date_time ($row, $col, $string, $format)
 #
-# Write TODO.
-# $format is optional.
+# Write a datetime string in ISO8601 "yyyy-mm-ddThh:mm:ss.ss" format as a
+# number representing an Excel date. $format is optional.
+#
 # Returns  0 : normal termination
 #         -1 : insufficient number of arguments
 #         -2 : row or column out of range
@@ -2466,11 +2629,23 @@ sub _write_names {
 
     # Sort the <NamedRange> elements lexically and case insensitively.
     for my $key (sort {lc $a cmp lc $b} keys %{$self->{_names}}) {
-        $self->_write_xml_element(3, 1, 0, 'NamedRange',
+
+        my @attributes = (
+                            'NamedRange',
                                            'ss:Name',
                                             $key,
                                            'ss:RefersTo',
-                                            $self->{_names}->{$key});
+                            $self->{_names}->{$key}
+                         );
+
+        # Temp workaround to hide _FilterDatabase.
+        # TODO. make this configurable later.
+        if ($key eq '_FilterDatabase') {
+            push @attributes, 'ss:Hidden' => 1;
+        }
+
+
+        $self->_write_xml_element(3, 1, 0, @attributes);
 
     }
 
@@ -3323,7 +3498,6 @@ sub _col_range_to_R1C1 {
 }
 
 
-
 ###############################################################################
 #
 # _write_worksheet_options()
@@ -3364,9 +3538,10 @@ sub _write_worksheet_options {
     $self->_write_xml_element(3,1,0,'DoNotDisplayGridlines')
                              if $self->{_screen_gridlines} == 0;
 
+    $self->_write_xml_element(3,1,0,'FilterOn') if $self->{_filter_on};
+
     $self->_write_xml_end_tag(2, 1, 0, 'WorksheetOptions');
 }
-
 
 
 ###############################################################################
@@ -3439,8 +3614,135 @@ sub _options_changed {
 
 
     $options_changed = 1 if $self->{_screen_gridlines} == 0;
+    $options_changed = 1 if $self->{_filter_on};
 
     return ($options_changed, $print_changed, $setup_changed);
+}
+
+
+###############################################################################
+#
+# _write_autofilter()
+#
+# Write the <AutoFilter> element.
+#
+sub _write_autofilter {
+
+    my $self = shift;
+
+    return unless $self->{_autofilter};
+
+    $self->_write_xml_start_tag(2, 1, 0, 'AutoFilter',
+                                         'x:Range',
+                                          $self->{_autofilter},
+                                         'xmlns',
+                                         'urn:schemas-microsoft-com:' .
+                                         'office:excel');
+
+
+    $self->_write_autofilter_column();
+
+    $self->_write_xml_end_tag(2, 1, 0, 'AutoFilter');
+}
+
+
+###############################################################################
+#
+# _write_autofilter_column()
+#
+# Write the <AutoFilterColumn> and <AutoFilterCondition> elements. The format
+# of this is a little complicated.
+#
+sub _write_autofilter_column {
+
+    my $self     = shift;
+    my @tokens;
+
+
+    my ($col_first, $col_last) = @{$self->{_filter_range}};
+
+    my $prev_col = $col_first -1;
+
+
+    for my $col ($col_first .. $col_last) {
+
+        # Check for rows with defined filter criteria.
+        if (defined $self->{_filter_cols}->{$col}) {
+
+            my   @attribs = ('AutoFilterColumn');
+
+            # The col indices are relative to the first column
+            push @attribs, "x:Index", $col +1 -$col_first if $col != $prev_col +1;
+            push @attribs, "x:Type", 'Custom';
+            $prev_col = $col;
+
+            $self->_write_xml_start_tag(3, 1, 0, @attribs);
+
+            @tokens = @{$self->{_filter_cols}->{$col}};
+
+
+            # Excel allows either one or two filter conditions
+
+            # Single criterion.
+            if (@tokens == 2) {
+                my ($op, $value) = @tokens;
+
+                $self->_write_xml_element(4, 1, 0, 'AutoFilterCondition',
+                                                   'x:Operator',
+                                                    $op,
+                                                   'x:Value',
+                                                    $value);
+            }
+            # Double criteria, either 'And' or 'Or'.
+            else {
+                my ($op1, $value1, $op2, $op3, $value3) = @tokens;
+
+                # <AutoFilterAnd> or <AutoFilterOr>
+                $self->_write_xml_start_tag(4, 1, 0, $op2);
+
+                $self->_write_xml_element(5, 1, 0, 'AutoFilterCondition',
+                                                   'x:Operator',
+                                                    $op1,
+                                                   'x:Value',
+                                                    $value1);
+
+                $self->_write_xml_element(5, 1, 0, 'AutoFilterCondition',
+                                                   'x:Operator',
+                                                    $op3,
+                                                   'x:Value',
+                                                    $value3);
+
+                $self->_write_xml_end_tag(4, 1, 0, $op2);
+
+            }
+
+            $self->_write_xml_end_tag(3, 1, 0, 'AutoFilterColumn');
+        }
+    }
+}
+
+
+###############################################################################
+#
+# _quote_sheetname()
+#
+# Sheetnames used in references should be quoted if they contain any spaces,
+# special characters or if the look like something that isn't a sheet name.
+# However, the rules are complex so for now we just quote anything that doesn't
+# look like a simple sheet name.
+#
+sub _quote_sheetname {
+
+    my $self      = shift;
+    my $sheetname = $_[0];
+
+
+    if ($sheetname  =~ /^Sheet\d+$/) {
+        return $sheetname;
+    }
+    else {
+        return "'" . $sheetname . "'";
+    }
 }
 
 

@@ -1,5 +1,13 @@
 Revision history for Perl module Spreadsheet::WriteExcelXML.
 
+0.10 April 29 2005
+
+    + Added autofilter option via the autofilter() and filter_column()
+      worksheet methods.
+
+    + Added autofilter.pl example program and tests.
+
+
 0.09 April 23 2005
 
     + Added write_html_string() method to allow multiple formats to
