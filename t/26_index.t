@@ -4,8 +4,8 @@
 #
 # A test for Spreadsheet::WriteExcelXML.
 #
-# Tests the implicit/explicit ss:Index attribute of <Row> and <Cell> elements.
-#
+# Tests the implicit/explicit ss:Index attribute of <Row> and <Cell> elements
+# with extended cell limits.
 # reverse('©'), July 2004, John McNamara, jmcnamara@cpan.org
 #
 
@@ -22,10 +22,6 @@ use Test::More tests => 19;
 #
 my $test_file = "temp_test_file.xml";
 my $workbook  = Spreadsheet::WriteExcelXML->new($test_file);
-
-# Test with older cell limits.
-$workbook->use_lower_cell_limits();
-
 my $worksheet = $workbook->add_worksheet();
 
 # Test for false "$col == $self->{prev_col} +1" from _write_xml_cell().
@@ -56,17 +52,17 @@ $worksheet->write('A15', 'A15');
 $worksheet->write('A17', 'A17');
 
 # Test for invalid cells. Module should ignore these.
-$worksheet->write('IW1',      'IW1'     ); # > Col limit.
-$worksheet->write('A65537',   'A65537'  ); # > Row limit.
-$worksheet->write('IW165537', 'IW165537'); # > Row and col limit.
+$worksheet->write('XFE1',       'XFE1'      ); # > Col limit.
+$worksheet->write('A1048577',   'A1048577'  ); # > Row limit.
+$worksheet->write('XFE1048577', 'XFE1048577'); # > Row and col limit.
 
 # Test for valid/invalid cells.
-my $err1 = $worksheet->write('IV1',      'IV1'     ); # Col limit.
-my $err2 = $worksheet->write('A65536',   'A65536'  ); # Row limit.
-my $err3 = $worksheet->write('IV65536',  'IV65536' ); # Row and col limit.
-my $err4 = $worksheet->write('IW1',      'IW1'     ); # > Col limit.
-my $err5 = $worksheet->write('A65537',   'A65537'  ); # > Row limit.
-my $err6 = $worksheet->write('IW165537', 'IW165537'); # > Row and col limit.
+my $err1 = $worksheet->write('XFD1',       'XFD1'      ); # Col limit.
+my $err2 = $worksheet->write('A1048576',   'A1048576'  ); # Row limit.
+my $err3 = $worksheet->write('XFD1048576', 'XFD1048576'); # Row and col limit.
+my $err4 = $worksheet->write('XFE1',       'XFE1'      ); # > Col limit.
+my $err5 = $worksheet->write('A1048577',   'A1048577'  ); # > Row limit.
+my $err6 = $worksheet->write('XFE1048577', 'XFE1048577'); # > Row and col limit.
 
 $workbook->close();
 
@@ -173,11 +169,11 @@ __DATA__
   </Style>
  </Styles>
  <Worksheet ss:Name="Sheet1">
-  <Table ss:ExpandedColumnCount="256" ss:ExpandedRowCount="65536"
+  <Table ss:ExpandedColumnCount="16384" ss:ExpandedRowCount="1048576"
    x:FullColumns="1" x:FullRows="1">
    <Row>
     <Cell><Data ss:Type="String">A1</Data></Cell>
-    <Cell ss:Index="256"><Data ss:Type="String">IV1</Data></Cell>
+    <Cell ss:Index="16384"><Data ss:Type="String">XFD1</Data></Cell>
    </Row>
    <Row>
     <Cell ss:Index="2"><Data ss:Type="String">B2</Data></Cell>
@@ -213,9 +209,9 @@ __DATA__
    <Row ss:Index="17">
     <Cell><Data ss:Type="String">A17</Data></Cell>
    </Row>
-   <Row ss:Index="65536">
-    <Cell><Data ss:Type="String">A65536</Data></Cell>
-    <Cell ss:Index="256"><Data ss:Type="String">IV65536</Data></Cell>
+   <Row ss:Index="1048576">
+    <Cell><Data ss:Type="String">A1048576</Data></Cell>
+    <Cell ss:Index="16384"><Data ss:Type="String">XFD1048576</Data></Cell>
    </Row>
   </Table>
   <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">

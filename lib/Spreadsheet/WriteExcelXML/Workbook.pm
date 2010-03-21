@@ -7,7 +7,7 @@ package Spreadsheet::WriteExcelXML::Workbook;
 #
 # Used in conjunction with Spreadsheet::WriteExcelXML
 #
-# Copyright 2000-2005, John McNamara, jmcnamara@cpan.org
+# Copyright 2000-2010, John McNamara, jmcnamara@cpan.org
 #
 # Documentation after __END__
 #
@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter Exporter);
 
-$VERSION = '0.07';
+$VERSION = '0.11';
 
 ###############################################################################
 #
@@ -56,6 +56,7 @@ sub new {
     $self->{_sheetnames}        = [];
     $self->{_formats}           = [];
     $self->{_palette}           = [];
+    $self->{_lower_cell_limits} = 0;
 
     bless $self, $class;
 
@@ -218,6 +219,7 @@ sub add_worksheet {
                         \$self->{_activesheet},
                         \$self->{_firstsheet},
                          $self->{_1904},
+                         $self->{_lower_cell_limits},
                     );
 
     my $worksheet = Spreadsheet::WriteExcelXML::Worksheet->new(@init_data);
@@ -330,7 +332,7 @@ sub set_custom_color {
     $index -=8; # Adjust colour index (wingless dragonfly)
 
     # Set the RGB value
-    $$aref[$index] = [$red, $green, $blue, 0];
+    $aref->[$index] = [$red, $green, $blue, 0];
 
     return $index +8;
 }
@@ -438,6 +440,23 @@ sub set_codepage {
     $codepage   = 0x04E4 if $codepage == 1;
     $codepage   = 0x8000 if $codepage == 2;
     $self->{_codepage} = $codepage;
+}
+
+
+###############################################################################
+#
+# use_lower_cell_limits()
+#
+# TODO
+#
+sub use_lower_cell_limits {
+
+    my $self = shift;
+
+    croak "use_lower_cell_limits() must be called before add_worksheet()"
+      if $self->sheets();
+
+    $self->{_lower_cell_limits} = 1;
 }
 
 
@@ -978,6 +997,6 @@ Software programs that read or write files that comply with the Microsoft specif
 
 =head1 COPYRIGHT
 
-© MM-MMV, John McNamara.
+© MM-MMX, John McNamara.
 
 All Rights Reserved. This module is free software. It may be used, redistributed and/or modified under the same terms as Perl itself.

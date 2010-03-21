@@ -7,7 +7,7 @@ package Spreadsheet::WriteExcelXML::Worksheet;
 #
 # Used in conjunction with Spreadsheet::WriteExcelXML
 #
-# Copyright 2000-2005, John McNamara, jmcnamara@cpan.org
+# Copyright 2000-2010, John McNamara, jmcnamara@cpan.org
 #
 # Documentation after __END__
 #
@@ -17,7 +17,7 @@ use strict;
 use Carp;
 use Spreadsheet::WriteExcelXML::XMLwriter;
 use Spreadsheet::WriteExcelXML::Format;
-
+use Spreadsheet::WriteExcelXML::Utility qw(xl_cell_to_rowcol xl_rowcol_to_cell);
 
 
 
@@ -25,7 +25,7 @@ use Spreadsheet::WriteExcelXML::Format;
 use vars qw($VERSION @ISA);
 @ISA = qw(Spreadsheet::WriteExcelXML::XMLwriter);
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 ###############################################################################
 #
@@ -37,8 +37,8 @@ sub new {
 
     my $class                   = shift;
     my $self                    = Spreadsheet::WriteExcelXML::XMLwriter->new();
-    my $rowmax                  = 65536;
-    my $colmax                  = 256;
+    my $rowmax                  = 1_048_576;
+    my $colmax                  = 16_384;
     my $strmax                  = 32767;
 
     $self->{_name}              = $_[0];
@@ -48,6 +48,7 @@ sub new {
     $self->{_activesheet}       = $_[4];
     $self->{_firstsheet}        = $_[5];
     $self->{_1904}              = $_[6];
+    $self->{_lower_cell_limits} = $_[7];
 
     $self->{_ext_sheets}        = [];
     $self->{_fileclosed}        = 0;
@@ -143,6 +144,12 @@ sub new {
                                    Merge    => 7,
                                    Comment  => 8,
                                   };
+
+    # Set older cell limits if required for backward compatibility.
+    if ( $self->{_lower_cell_limits} ) {
+        $self->{_xls_rowmax} = 65536;
+        $self->{_xls_colmax} = 256;
+    }
 
 
     bless $self, $class;
@@ -705,10 +712,10 @@ sub print_area {
     my ($row1, $col1, $row2, $col2) = @_;
 
     # Ignore max print area since this is the same as no print area for Excel.
-    if ($row1 == 0        and
-        $col1 == 0        and
-        $row2 == 2**16 -1 and
-        $col2 == 2**8  -1
+    if ($row1 == 0                       and
+        $col1 == 0                       and
+        $row2 == $self->{_xls_rowmax} -1 and
+        $col2 == $self->{_xls_colmax} -1
     ){return}
 
     # Build up the print area range "=Sheet2!R1C1:R2C1"
@@ -767,12 +774,10 @@ sub filter_column {
 
     # Check for a column reference in A1 notation and substitute.
     if ($col =~ /^\D/) {
-        my %hash;
-        @hash{'A' .. 'IV'} = (0 .. 255);
+        my $col_letter = $col;
+        (undef, $col) = xl_cell_to_rowcol($col . '1');
 
-        croak "Invalid column '$col'" unless exists $hash{$col};
-
-        $col = $hash{$col};
+        croak "Invalid column '$col_letter'" if $col >= $self->{_xls_colmax};
     }
 
 
@@ -862,11 +867,11 @@ sub _convert_name_area {
 
 
     # We need to handle some special cases that refer to rows or columns only.
-    if (   $row1 == 0 and $row2 == 2**16 -1) {
+    if (   $row1 == 0 and $row2 == $self->{_xls_rowmax} -1) {
        $range1 = 'C' . ($col1 +1);
        $range2 = 'C' . ($col2 +1);
     }
-    elsif ($col1 == 0 and $col2 == 2**8  -1) {
+    elsif ($col1 == 0 and $col2 == $self->{_xls_colmax} -1) {
        $range1 = 'R' . ($row1 +1);
        $range2 = 'R' . ($row2 +1);
     }
@@ -1376,22 +1381,22 @@ sub _substitute_cellref {
     my $cell = uc(shift);
 
     # Convert a column range: 'A:A' or 'B:G'.
-    # A range such as A:A is equivalent to A1:65536, so add rows as required
-    if ($cell =~ /\$?([A-I]?[A-Z]):\$?([A-I]?[A-Z])/) {
+    # A range such as A:A is equivalent to A1:Rowmax, so add rows as required
+    if ($cell =~ /\$?([A-Z]{1,3}):\$?([A-Z]{1,3})/) {
         my ($row1, $col1) =  $self->_cell_to_rowcol($1 .'1');
-        my ($row2, $col2) =  $self->_cell_to_rowcol($2 .'65536');
+        my ($row2, $col2) =  $self->_cell_to_rowcol($2 . $self->{_xls_rowmax});
         return $row1, $col1, $row2, $col2, @_;
     }
 
     # Convert a cell range: 'A1:B7'
-    if ($cell =~ /\$?([A-I]?[A-Z]\$?\d+):\$?([A-I]?[A-Z]\$?\d+)/) {
+    if ($cell =~ /\$?([A-Z]{1,3}\$?\d+):\$?([A-Z]{1,3}\$?\d+)/) {
         my ($row1, $col1) =  $self->_cell_to_rowcol($1);
         my ($row2, $col2) =  $self->_cell_to_rowcol($2);
         return $row1, $col1, $row2, $col2, @_;
     }
 
     # Convert a cell reference: 'A1' or 'AD2000'
-    if ($cell =~ /\$?([A-I]?[A-Z]\$?\d+)/) {
+    if ($cell =~ /\$?([A-Z]{1,3}\$?\d+)/) {
         my ($row1, $col1) =  $self->_cell_to_rowcol($1);
         return $row1, $col1, @_;
 
@@ -1418,7 +1423,7 @@ sub _cell_to_rowcol {
     my $self =  shift;
 
     my $cell =  $_[0];
-       $cell =~ /(\$?)([A-I]?[A-Z])(\$?)(\d+)/;
+       $cell =~ /(\$?)([A-Z]{1,3})(\$?)(\d+)/;
 
     my $col_abs = $1 eq "" ? 0 : 1;
     my $col     = $2;
@@ -1554,7 +1559,7 @@ sub write_number {
 # Returns  0 : normal termination
 #         -1 : insufficient number of arguments
 #         -2 : row or column out of range
-#         -3 : long string truncated to 255 chars
+#         -3 : long string truncated to 32767 chars
 #
 sub write_string {
 
@@ -1606,7 +1611,7 @@ sub write_string {
 # Returns  0 : normal termination
 #         -1 : insufficient number of arguments
 #         -2 : row or column out of range
-#         -3 : long string truncated to 255 chars
+#         -3 : long string truncated to 32767 chars
 #
 sub write_html_string {
 
@@ -1783,9 +1788,8 @@ sub write_array_formula {
         $array_range = 'RC';
     }
     else {
-        # Probably should use Utility::xl_rowcol_to_cell().
-        $array_range = ('A' .. 'IV')[$col1] . ($row1 +1) . ':' .
-                       ('A' .. 'IV')[$col2] . ($row2 +1);
+        $array_range = xl_rowcol_to_cell($row1, $col1) . ':' .
+                       xl_rowcol_to_cell($row2, $col2);
         $array_range = $self->_convert_formula($row1, $col1, $array_range);
     }
 
@@ -1848,7 +1852,7 @@ sub repeat_formula {
 # Write a hyperlink. This is comprised of two elements: the visible label and
 # the invisible link. The visible label is the same as the link unless an
 # alternative string is specified. The label is written using the
-# write_string() method. Therefore the 255 characters string limit applies.
+# write_string() method. Therefore the max characters string limit applies.
 # $string and $format are optional and their order is interchangeable.
 #
 # The hyperlink can be to a http, ftp, mail, internal sheet, or external
@@ -1857,7 +1861,7 @@ sub repeat_formula {
 # Returns  0 : normal termination
 #         -1 : insufficient number of arguments
 #         -2 : row or column out of range
-#         -3 : long string truncated to 255 chars
+#         -3 : long string truncated to 32767 chars
 #
 sub write_url {
 
@@ -3307,9 +3311,9 @@ sub _convert_formula {
 
     # Replace valid A1 cell references with R1C1 references. Cell ranges such
     # as B5:G10 are replaced in two passes.
-    # The negative look-behind is to prevent false matches such as =LOG10(G10)
+    # The negative look-ahead is to prevent false matches such as =LOG10(LOG10)
     #
-    $formula =~ s{(?<![A-Z])(\$?[A-I]?[A-Z]\$?\d+)}
+    $formula =~ s{(\$?[A-Z]{1,3}\$?\d+)(?![(\d])}
                  {$self->_A1_to_R1C1($row, $col, $1)}eg;
 
 
@@ -3323,6 +3327,9 @@ sub _convert_formula {
     # The negative look-behind is to prevent false column matches such
     # as "=A1:A1" => "=RC:RC"
     #
+    # Note: there is a tricky parse due to the increased column limits that
+    # isn't handled here. RC:RC is now a valid column range in A1 notation.
+    # Fix later. Maybe.
     $formula =~ s{(?<![A-Z\]])(\$?[A-I]?[A-Z]:\$?[A-I]?[A-Z])}
                  {$self->_col_range_to_R1C1($col, $1)}eg;
 
@@ -3461,24 +3468,25 @@ sub _col_range_to_R1C1 {
     my $current_col = $_[0] +1; # One based
     my $range       = $_[1];
 
-    my %columns;
-
-    @columns{'A' .. 'IV'} = (1 ..256); # Cheap and cheerful or quick and dirty.
-
 
     # Split the range into 2 cols
-    my ($col1, $col2) = split ':', $range;
+    my ($col_letter1, $col_letter2) = split ':', $range;
 
-    for my $col ($col1, $col2) {
+    # Note $col is used as an alias. The original values are changed in place.
+    # This should probably be refactored into a function.
+    for my $col ($col_letter1, $col_letter2) {
 
-        my $col_abs = $col =~ s/\$//;
+        my $col_abs;
+        my $col_letter = $col;
 
-        if (not exists $columns{$col}) {
-            warn "$col is not an Excel column label.\n"; # TODO Carp
+        (undef, $col, undef, $col_abs) = xl_cell_to_rowcol($col . '1');
+
+        # Switch from 0 based to 1 based.
+        $col++;
+
+        if ($col > $self->{_xls_colmax}) {
+            warn "$col_letter is not an Excel column label.\n"; # TODO Carp
             return $range;
-        }
-        else {
-            $col = $columns{$col};
         }
 
         my $r1c1 = 'C';
@@ -3493,8 +3501,8 @@ sub _col_range_to_R1C1 {
     }
 
     # A single column range such as 'C3:C3' is represented as 'C3'
-    if ($col1 eq $col2) {return $col1        }
-    else                {return "$col1:$col2"}
+    if ($col_letter1 eq $col_letter2) {return $col_letter1               }
+    else                              {return "$col_letter1:$col_letter2"}
 }
 
 
@@ -3778,7 +3786,7 @@ Software programs that read or write files that comply with the Microsoft specif
 
 =head1 COPYRIGHT
 
-© MM-MMV, John McNamara.
+© MM-MMx, John McNamara.
 
 All Rights Reserved. This module is free software. It may be used, redistributed and/or modified under the same terms as Perl itself.
 
