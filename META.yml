@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Spreadsheet-WriteExcelXML
-version:            0.11
+version:            0.12
 abstract:           Write an Excel XML file.
 author:
     - John McNamara (jmcnamara@cpan.org)
@@ -13,7 +13,7 @@ build_requires:
 requires:  {}
 resources:
     MailingList:  http://groups.google.com/group/spreadsheet-writeexcel
-    repository:   http://github.com/jmcnamara/spreadsheet-writeexcel
+    repository:   http://github.com/jmcnamara/spreadsheet-writeexcelxml
 no_index:
     directory:
         - t
