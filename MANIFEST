@@ -100,3 +100,4 @@ examples/write_handler2.pl
 examples/write_handler3.pl
 examples/write_handler4.pl
 examples/write_to_scalar.pl
+META.json                                Module JSON meta-data (added by MakeMaker)
